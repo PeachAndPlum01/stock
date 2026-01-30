@@ -39,13 +39,17 @@
             <el-icon><Location /></el-icon>
             <span>地区选相关度</span>
           </el-menu-item>
-          <el-menu-item index="concept-analysis">
+          <el-menu-item index="concept-analysis" disabled>
             <el-icon><TrendCharts /></el-icon>
-            <span>概念选相关度</span>
+            <span>概念选相关度（开发中）</span>
           </el-menu-item>
-          <el-menu-item index="discussion">
+          <el-menu-item index="discussion" disabled>
             <el-icon><ChatDotRound /></el-icon>
-            <span>讨论区</span>
+            <span>讨论区（开发中）</span>
+          </el-menu-item>
+          <el-menu-item index="star-view" disabled>
+            <el-icon><Star /></el-icon>
+            <span>观星（开发中）</span>
           </el-menu-item>
         </el-menu>
       </div>
@@ -55,7 +59,11 @@
         <!-- 左侧地图 -->
         <div class="map-section">
           <div class="section-title">中国投资地图</div>
-          <div ref="mapRef" class="china-map"></div>
+          <div v-if="mapData.length === 0" class="map-loading">
+            <el-icon class="loading-icon"><Loading /></el-icon>
+            <span>地图加载中...</span>
+          </div>
+          <div ref="mapRef" class="china-map" v-else></div>
         </div>
 
         <!-- 右侧信息面板 -->
@@ -119,7 +127,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Location, TrendCharts, ChatDotRound, Expand, Fold } from '@element-plus/icons-vue'
+import { Location, TrendCharts, ChatDotRound, Expand, Fold, Star, Loading } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getMapData, getInvestmentByProvince, logout } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -145,20 +153,37 @@ const toggleSidebar = () => {
 
 // 菜单选择处理
 const handleMenuSelect = (index) => {
+  // 如果点击的是禁用菜单项，不改变当前选中状态
+  if (['concept-analysis', 'discussion', 'star-view'].includes(index)) {
+    return
+  }
+  
   activeMenu.value = index
   // 根据选择的菜单项处理不同的功能
   switch (index) {
     case 'region-analysis':
-      // 地区选相关度功能（当前已有）
-      ElMessage.info('已切换到地区选相关度功能')
-      break
-    case 'concept-analysis':
-      // 概念选相关度功能（未来扩展）
-      ElMessage.info('概念选相关度功能开发中...')
-      break
-    case 'discussion':
-      // 讨论区功能（未来扩展）
-      ElMessage.info('讨论区功能开发中...')
+      // 地区选相关度功能 - 重置地图状态并显示中国地图
+      selectedProvince.value = ''
+      investmentList.value = []
+      relatedProvinces.value = []
+      
+      // 重置地图显示
+      if (chartInstance && mapData.value.length > 0) {
+        chartInstance.setOption({
+          series: [{
+            data: mapData.value.map(item => ({
+              ...item,
+              itemStyle: {
+                areaColor: '#e0f3f8',
+                borderColor: '#fff',
+                borderWidth: 1
+              }
+            }))
+          }]
+        })
+      }
+      
+      ElMessage.info('已切换到地区选相关度功能，请点击地图上的省份查看投资信息')
       break
   }
 }
@@ -200,42 +225,58 @@ const initMap = () => {
         type: 'map',
         map: 'china',
         roam: false,
+        zoom: 1.2, // 直接在地图series中设置缩放
+        center: [105, 36], // 直接在地图series中设置中心点
         selectedMode: 'single', // 允许选中单个省份
         silent: false, // 确保地图可以交互
         label: {
           show: true,
-          fontSize: function(params) {
+          fontSize: (params) => {
             // 根据省份名称动态调整字体大小
-            const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
-            const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+            const smallAreas = ['澳', '港', '台', '沪', '京', '津', '渝'];
+            const mediumAreas = ['琼', '宁', '青', '甘'];
             
-            if (smallAreas.includes(params.name)) {
+            // 直接使用省份名称
+            const normalizedName = params.name;
+            
+            if (smallAreas.includes(normalizedName)) {
               return 8; // 小区域使用更小的字体
-            } else if (mediumAreas.includes(params.name)) {
+            } else if (mediumAreas.includes(normalizedName)) {
               return 9; // 中等区域使用中等字体
             } else {
               return 10; // 大区域使用正常字体
             }
           },
           color: '#333',
-          fontWeight: 'normal'
+          fontWeight: 'normal',
+          formatter: (params) => {
+            // 直接使用省份简称显示在地图上
+            return params.name;
+          }
         },
         emphasis: {
           label: {
             show: true,
             color: '#fff',
-            fontSize: function(params) {
+            fontSize: (params) => {
               // 高亮状态下也保持相对大小比例
-              const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
-              const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+              const smallAreas = ['澳', '港', '台', '沪', '京', '津', '渝'];
+              const mediumAreas = ['琼', '宁', '青', '甘'];
               
-              if (smallAreas.includes(params.name)) {
+              // 直接使用省份名称
+              const normalizedName = params.name;
+              
+              if (smallAreas.includes(normalizedName)) {
                 return 9;
-              } else if (mediumAreas.includes(params.name)) {
+              } else if (mediumAreas.includes(normalizedName)) {
                 return 10;
               } else {
                 return 12;
               }
+            },
+            formatter: (params) => {
+              // 直接使用省份简称显示在高亮状态
+              return params.name;
             }
           },
           itemStyle: {
@@ -250,17 +291,24 @@ const initMap = () => {
           label: {
             show: true,
             color: '#fff',
-            fontSize: function(params) {
-              const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
-              const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+            fontSize: (params) => {
+              const smallAreas = ['澳', '港', '台', '沪', '京', '津', '渝'];
+              const mediumAreas = ['琼', '宁', '青', '甘'];
               
-              if (smallAreas.includes(params.name)) {
+              // 直接使用省份名称
+              const normalizedName = params.name;
+              
+              if (smallAreas.includes(normalizedName)) {
                 return 9;
-              } else if (mediumAreas.includes(params.name)) {
+              } else if (mediumAreas.includes(normalizedName)) {
                 return 10;
               } else {
                 return 12;
               }
+            },
+            formatter: (params) => {
+              // 直接使用省份简称显示在选中状态
+              return params.name;
             }
           },
           itemStyle: {
@@ -307,18 +355,15 @@ const loadMapData = async () => {
   }
 }
 
-// 标准化省份名称(去除"省"、"市"、"自治区"等后缀)
-const normalizeProvinceName = (name) => {
-  // 先去除民族名称和行政区划后缀，如"维吾尔自治区" -> ""
-  return name.replace(/(壮族|回族|维吾尔|藏族|蒙古|朝鲜族)?(自治区|省|市|特别行政区)/g, '')
-}
+
 
 // 处理省份点击
 const handleProvinceClick = async (provinceName) => {
-  selectedProvince.value = provinceName
+  // 使用标准化后的省份简称作为显示名称
+        selectedProvince.value = provinceName
   
   // 标准化省份名称用于查询
-  const normalizedName = normalizeProvinceName(provinceName)
+        const normalizedName = provinceName
   
   console.log('🔍 点击省份:', provinceName)
   console.log('🔍 标准化后:', normalizedName)
@@ -332,9 +377,14 @@ const handleProvinceClick = async (provinceName) => {
     // 修复数据绑定：使用正确的字段名
     investmentList.value = res.data.investmentList || []
     relatedProvinces.value = res.data.relatedProvinces || []
-
+    
+    console.log('📋 关联省份数据:', relatedProvinces.value)
+    
     // 高亮关联性最强的三个省份
     if (chartInstance && relatedProvinces.value.length > 0) {
+      console.log('🔍 关联省份列表:', relatedProvinces.value)
+      console.log('🔍 当前选中省份:', provinceName)
+      
       // 首先重置所有省份的颜色
       const resetData = mapData.value.map(item => ({
         ...item,
@@ -345,9 +395,17 @@ const handleProvinceClick = async (provinceName) => {
         }
       }))
 
-      // 高亮当前选中的省份
+      // 标准化关联省份名称以匹配地图数据中的简称格式
+      const normalizedRelatedProvinces = relatedProvinces.value.map(province => {
+        // API返回的简称直接使用，无需转换
+        return province
+      })
+      console.log('📊 标准化后的关联省份:', normalizedRelatedProvinces)
+      
+      // 高亮当前选中的省份和关联省份
       const highlightData = resetData.map(item => {
         if (item.name === provinceName) {
+          console.log('🔴 高亮当前省份:', item.name)
           return {
             ...item,
             itemStyle: {
@@ -358,7 +416,8 @@ const handleProvinceClick = async (provinceName) => {
           }
         }
         // 高亮关联性最强的三个省份
-        if (relatedProvinces.value.includes(item.name)) {
+        if (normalizedRelatedProvinces.includes(item.name)) {
+          console.log('🟡 高亮关联省份:', item.name)
           return {
             ...item,
             itemStyle: {
@@ -377,6 +436,7 @@ const handleProvinceClick = async (provinceName) => {
         }]
       })
     } else {
+      console.log('⚠️ 没有关联省份，只高亮当前省份')
       // 如果没有关联省份，只高亮当前选中的省份
       const highlightData = mapData.value.map(item => {
         if (item.name === provinceName) {
@@ -399,6 +459,7 @@ const handleProvinceClick = async (provinceName) => {
       })
     }
   } catch (error) {
+    console.error('❌ 获取投资数据失败:', error)
     ElMessage.error('加载投资信息失败')
   }
 }
@@ -429,9 +490,18 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
-  await loadMapData()
-  initMap()
-  window.addEventListener('resize', handleResize)
+  try {
+    await loadMapData()
+    initMap()
+    window.addEventListener('resize', handleResize)
+    
+    // 页面加载完成后显示欢迎信息
+    setTimeout(() => {
+      ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看投资信息')
+    }, 500)
+  } catch (error) {
+    ElMessage.error('地图初始化失败，请刷新页面重试')
+  }
 })
 
 onUnmounted(() => {
@@ -650,6 +720,31 @@ onUnmounted(() => {
   cursor: pointer;
   position: relative;
   z-index: 1;
+}
+
+.map-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.loading-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: #007AFF;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .info-content {

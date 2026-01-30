@@ -24,7 +24,7 @@
         async function testBeijing() {
             showResult('正在请求北京数据...');
             try {
-                const response = await fetch(`${baseURL}/investment/province/北京?limit=10`);
+                const response = await fetch(`${baseURL}/investment/province/京?limit=10`);
                 const data = await response.json();
                 showResult('北京数据：\n' + JSON.stringify(data, null, 2));
             } catch (error) {
@@ -35,7 +35,7 @@
         async function testShanghai() {
             showResult('正在请求上海数据...');
             try {
-                const response = await fetch(`${baseURL}/investment/province/上海?limit=10`);
+                const response = await fetch(`${baseURL}/investment/province/沪?limit=10`);
                 const data = await response.json();
                 showResult('上海数据：\n' + JSON.stringify(data, null, 2));
             } catch (error) {

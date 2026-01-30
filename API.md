@@ -125,14 +125,14 @@ Authorization: Bearer {token}
 **接口地址**: `GET /investment/province/{province}`
 
 **路径参数**:
-- `province`: 省份名称（如：北京、上海）
+- `province`: 省份名称（如：京、沪）
 
 **查询参数**:
 - `limit`: 返回数量，默认10，范围1-50
 
 **请求示例**:
 ```
-GET /investment/province/北京?limit=10
+GET /investment/province/京?limit=10
 ```
 
 **响应示例**:
@@ -141,13 +141,13 @@ GET /investment/province/北京?limit=10
   "code": 200,
   "message": "操作成功",
   "data": {
-    "province": "北京",
+    "province": "京",
     "total": 2,
     "investmentList": [
       {
         "id": 1,
         "title": "北京科技园区AI项目",
-        "province": "北京",
+        "province": "京",
         "provinceCode": "110000",
         "city": "北京市",
         "companyName": "智能科技有限公司",
@@ -155,7 +155,7 @@ GET /investment/province/北京?limit=10
         "investmentAmount": 50000.00,
         "investmentType": "股权投资",
         "description": "投资AI芯片研发项目，预计3年内实现量产",
-        "relatedProvinces": "上海,广东,浙江",
+        "relatedProvinces": "沪,粤,浙",
         "investmentDate": "2026-01-15",
         "status": 1,
         "createTime": "2026-01-30 10:00:00",
@@ -164,7 +164,7 @@ GET /investment/province/北京?limit=10
       {
         "id": 16,
         "title": "北京量子通信研发中心",
-        "province": "北京",
+        "province": "京",
         "provinceCode": "110000",
         "city": "北京市",
         "companyName": "量子科技研究院",
@@ -172,14 +172,14 @@ GET /investment/province/北京?limit=10
         "investmentAmount": 85000.00,
         "investmentType": "研发投资",
         "description": "建设量子通信研发中心，抢占科技制高点",
-        "relatedProvinces": "上海,安徽,广东",
+        "relatedProvinces": "沪,皖,粤",
         "investmentDate": "2026-01-11",
         "status": 1,
         "createTime": "2026-01-30 10:00:00",
         "updateTime": "2026-01-30 10:00:00"
       }
     ],
-    "relatedProvinces": ["上海", "广东", "浙江", "安徽"]
+    "relatedProvinces": ["沪", "粤", "浙", "皖"]
   },
   "timestamp": 1706601234567
 }
