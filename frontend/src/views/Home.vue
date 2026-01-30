@@ -69,91 +69,118 @@
 
           <!-- 右侧信息面板 -->
           <div class="info-section">
-            <div class="section-title">
-              {{ selectedProvince ? `${selectedProvince} - 投资信息` : '请点击地图选择省份' }}
-            </div>
-            
             <div v-if="selectedProvince" class="info-content">
-              <!-- 关联省份提示 -->
-              <div v-if="relatedProvinces.length > 0" class="related-provinces">
-                <el-tag type="warning" size="small">关联省份</el-tag>
-                <el-tag
-                  v-for="province in relatedProvinces"
-                  :key="province"
-                  type="info"
-                  size="small"
-                  style="margin-left: 8px"
-                >
-                  {{ province }}
-                </el-tag>
-              </div>
               
-              <!-- 关联原因说明 -->
-              <div v-if="relatedReasons && Object.keys(relatedReasons).length > 0" class="related-reasons">
-                <div class="reason-title">
-                  关联原因
-                  <span class="reason-count">({{ Object.keys(relatedReasons).length }})</span>
+              <!-- 关联省份区域 -->
+              <div class="info-block provinces-block">
+                <div class="block-header">
+                  <el-icon><Location /></el-icon>
+                  <span class="block-title">关联省份</span>
+                  <el-tag size="small" type="info">{{ relatedProvinces.length }}</el-tag>
                 </div>
-                <div v-for="(reasonInfo, province) in relatedReasons" :key="province" class="reason-item">
-                  <div 
-                    class="reason-header" 
-                    @click="toggleReasonExpand(province)"
+                <div class="block-body">
+                  <el-tag
+                    v-for="province in relatedProvinces"
+                    :key="province"
+                    type="primary"
+                    size="small"
+                    class="province-tag"
                   >
-                    <span class="reason-province">{{ province }}</span>
-                    <span class="reason-summary">{{ reasonInfo.description }}</span>
-                    <el-icon 
-                      class="expand-icon" 
-                      :class="{ 'expanded': expandedReasons[province] }"
+                    {{ province }}
+                  </el-tag>
+                  <span v-if="relatedProvinces.length === 0" class="empty-text">无</span>
+                </div>
+              </div>
+
+              <!-- 关联原因区域 -->
+              <div class="info-block reasons-block">
+                <div class="block-header">
+                  <el-icon><TrendCharts /></el-icon>
+                  <span class="block-title">关联原因</span>
+                  <el-tag size="small" type="info">{{ Object.keys(relatedReasons).length }}</el-tag>
+                </div>
+                <div class="block-body">
+                  <div v-for="(reasonInfo, province) in relatedReasons" :key="province" class="reason-item">
+                    <div 
+                      class="reason-header" 
+                      @click="toggleReasonExpand(province)"
                     >
-                      <arrow-down />
-                    </el-icon>
-                  </div>
-                  <el-collapse-transition>
-                    <div v-show="expandedReasons[province]" class="reason-projects">
-                      <div v-if="reasonInfo.projects && reasonInfo.projects.length > 0" class="projects-list">
+                      <span class="reason-province">{{ province }}</span>
+                      <span class="reason-summary" v-html="reasonInfo.description"></span>
+                      <el-icon 
+                        class="expand-icon" 
+                        :class="{ 'expanded': expandedReasons[province] }"
+                      >
+                        <arrow-down />
+                      </el-icon>
+                    </div>
+                    <el-collapse-transition>
+                      <div v-show="expandedReasons[province]" class="reason-projects">
+                        <div v-if="reasonInfo.projects && reasonInfo.projects.length > 0" class="projects-list">
                         <div v-for="(project, index) in reasonInfo.projects" :key="index" class="project-item">
-                          <div class="project-name">{{ project.title }}</div>
-                          <div class="project-info">
-                            <span class="project-industry">{{ project.industry }}</span>
-                            <span class="project-amount">{{ project.amount }} 万元</span>
+                            <div class="project-name">{{ project.title }}</div>
+                            <div class="project-info">
+                              <span class="project-industry">{{ project.industry }}</span>
+                              <el-tag 
+                                :type="parseFloat(project.amount) >= 0 ? 'danger' : 'success'" 
+                                size="small"
+                              >
+                                {{ parseFloat(project.amount) >= 0 ? '+' : '' }}{{ project.amount }}%
+                              </el-tag>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </el-collapse-transition>
+                    </el-collapse-transition>
+                  </div>
+                  <span v-if="Object.keys(relatedReasons).length === 0" class="empty-text">无</span>
                 </div>
               </div>
 
-              <!-- 投资信息列表 -->
-              <div class="investment-list">
-                <el-card
-                  v-for="item in investmentList"
-                  :key="item.id"
-                  class="investment-card"
-                  shadow="hover"
-                >
-                  <template #header>
-                    <div class="card-header">
-                      <span class="card-title">{{ item.title }}</span>
-                      <el-tag type="success" size="small">{{ item.investmentType }}</el-tag>
+              <!-- 股票列表区域 -->
+              <div class="info-block stocks-block">
+                <div class="block-header">
+                  <el-icon><Star /></el-icon>
+                  <span class="block-title">股票列表</span>
+                  <el-tag size="small" type="info">{{ investmentList.length }}</el-tag>
+                </div>
+                <div class="block-body">
+                  <div v-if="investmentList.length > 0" class="stocks-list">
+                    <div
+                      v-for="item in investmentList"
+                      :key="item.id"
+                      class="stock-item"
+                    >
+                      <div class="stock-main">
+                        <span class="stock-name">{{ item.companyName }}</span>
+                        <el-tag 
+                          :type="item.changePercent >= 0 ? 'danger' : 'success'" 
+                          size="small"
+                        >
+                          {{ item.changePercent >= 0 ? '+' : '' }}{{ item.changePercent }}%
+                        </el-tag>
+                      </div>
+                      <div class="stock-detail">
+                        <span class="stock-price">¥{{ item.investmentAmount }}</span>
+                        <span class="stock-industry">{{ item.industry }}</span>
+                      </div>
+                      <div class="stock-more">
+                        <p><strong>题材概念：</strong>{{ item.title }}</p>
+                        <p><strong>市盈率：</strong>{{ item.investmentType }}</p>
+                        <p><strong>所在城市：</strong>{{ item.city }}</p>
+                        <p class="description"><strong>公司简介：</strong>{{ item.description }}</p>
+                      </div>
                     </div>
-                  </template>
-                  
-                  <div class="card-content">
-                    <p><strong>公司：</strong>{{ item.companyName }}</p>
-                    <p><strong>行业：</strong>{{ item.industry }}</p>
-                    <p><strong>城市：</strong>{{ item.city }}</p>
-                    <p><strong>金额：</strong><span class="amount">{{ item.investmentAmount }} 万元</span></p>
-                    <p><strong>日期：</strong>{{ item.investmentDate }}</p>
-                    <p class="description"><strong>描述：</strong>{{ item.description }}</p>
                   </div>
-                </el-card>
-
-                <el-empty v-if="investmentList.length === 0" description="暂无投资信息" />
+                  <el-empty v-else description="暂无股票数据" :image-size="80" />
+                </div>
               </div>
-            </div>
 
-            <el-empty v-else description="请点击地图上的省份查看投资信息" />
+            </div>
+            <div v-else class="info-placeholder">
+              <el-icon class="placeholder-icon"><Location /></el-icon>
+              <p>请点击地图上的省份查看详细信息</p>
+            </div>
           </div>
         </div>
 
@@ -483,19 +510,19 @@ const initMap = () => {
         trigger: 'item',
         formatter: (params) => {
           if (params.data && params.data.amount !== undefined) {
-            return `${params.name}<br/>投资项目：${params.data.value} 个<br/>投资总额：${params.data.amount.toFixed(2)} 万元`
+            return `${params.name}<br/>股票数量：${params.data.value} 只<br/>平均涨幅：${params.data.amount.toFixed(2)}%`
           }
           return params.name
         }
       },
       visualMap: {
         min: 0,
-        max: 10,
+        max: 8,
         text: ['高', '低'],
         realtime: false,
         calculable: true,
         inRange: {
-          color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+          color: ['#fff7f5', '#fde0d9', '#fcbba1', '#fc9272', '#f46643']
         },
         left: 'left',
         bottom: '20px'
@@ -562,7 +589,7 @@ const initMap = () => {
             },
             itemStyle: {
               areaColor: '#ffd700',
-              borderColor: '#fff',
+              borderColor: '#d0d0d0',
               borderWidth: 2,
               shadowBlur: 20,
               shadowColor: 'rgba(0, 0, 0, 0.5)'
@@ -594,13 +621,13 @@ const initMap = () => {
             },
             itemStyle: {
               areaColor: '#ff6b6b',
-              borderColor: '#fff',
+              borderColor: '#d0d0d0',
               borderWidth: 2
             }
           },
           itemStyle: {
             areaColor: '#e0f3f8',
-            borderColor: '#fff',
+            borderColor: '#d0d0d0',
             borderWidth: 1
           },
           data: mapData.value || []
@@ -693,13 +720,59 @@ const handleProvinceClick = async (provinceName) => {
   try {
     const res = await getInvestmentByProvince(normalizedName, 100)
     console.log('📊 API返回数据:', res.data)
-    console.log('📋 投资列表:', res.data.investmentList)
-    console.log('📋 投资列表长度:', res.data.investmentList?.length)
+    console.log('📋 股票列表:', res.data.investmentList)
+    console.log('📋 股票列表长度:', res.data.investmentList?.length)
     
-    // 修复数据绑定：使用正确的字段名
-    investmentList.value = res.data.investmentList || []
-    relatedProvinces.value = res.data.relatedProvinces || []
-    relatedReasons.value = res.data.relatedReasons || {}
+    // 使用后端返回的数据，直接使用tenDayChange字段作为涨跌幅
+    investmentList.value = (res.data.topStocks || []).map(item => ({
+      ...item,
+      // 使用后端返回的近十日总涨幅
+      changePercent: item.tenDayChange ? item.tenDayChange.toFixed(2) : '0.00'
+    }))
+    
+    // 处理相关省份数据
+    const relatedProvinceDetails = res.data.relatedProvinces || []
+    
+    // 提取省份简称列表（用于显示标签）
+    relatedProvinces.value = relatedProvinceDetails.map(item => item.province)
+    
+    // 构建关联原因数据（用于展开显示）
+    relatedReasons.value = {}
+    relatedProvinceDetails.forEach(item => {
+      const province = item.province
+      let description = item.correlationReason
+      
+      console.log('🔍 处理省份:', province)
+      console.log('🔍 原始 correlationReason:', description)
+      console.log('🔍 是否以 { 开头:', typeof description === 'string' && description.trim().startsWith('{'))
+      
+      // 尝试解析correlationReason JSON字符串，提取description字段
+      try {
+        // 检查是否是JSON格式（以{开头）
+        if (typeof description === 'string' && description.trim().startsWith('{')) {
+          const parsedReason = JSON.parse(description)
+          if (parsedReason.description) {
+            description = parsedReason.description
+          }
+        }
+        // 如果不是JSON格式，直接使用原始值
+      } catch (e) {
+        console.warn('解析correlationReason失败，使用原始值', e)
+        // 使用原始值
+      }
+      
+      console.log('🔍 最终 description:', description)
+      
+      const relatedProvinceDetail = {
+        description: description,
+        projects: (item.topStocks || []).map(stock => ({
+          title: stock.companyName,
+          industry: stock.industry,
+          amount: stock.tenDayChange ? stock.tenDayChange.toFixed(2) : '0.00'
+        }))
+      }
+      relatedReasons.value[province] = relatedProvinceDetail
+    })
     
     // 重置关联原因展开状态
     expandedReasons.value = {}
@@ -920,7 +993,7 @@ onMounted(async () => {
     
     // 页面加载完成后显示欢迎信息
     setTimeout(() => {
-      ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看投资信息')
+      ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看股票信息')
       console.log('✅ 欢迎消息已显示')
     }, 500)
     
@@ -1114,16 +1187,14 @@ onUnmounted(() => {
   border: 2px solid #e5e5e5;
 }
 
+/* 右侧信息面板 */
 .info-section {
-  width: 450px;
-  background: #fff;
-  border-radius: 4px;
-  padding: 20px;
+  width: 400px;
+  background: #f5f7fa;
+  border-left: 1px solid #e5e5e5;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 450px;
-  border: 2px solid #e5e5e5;
 }
 
 .section-title {
@@ -1138,9 +1209,9 @@ onUnmounted(() => {
 .china-map {
   flex: 1;
   width: 100%;
-  height: 100%;  /* 明确设置高度 */
+  height: 100%;
   min-height: 0;
-  min-width: 0;  /* 添加最小宽度 */
+  min-width: 0;
   pointer-events: auto;
   cursor: pointer;
   position: relative;
@@ -1174,77 +1245,119 @@ onUnmounted(() => {
 
 .info-content {
   flex: 1;
+  padding: 16px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 16px;
 }
 
-.related-provinces {
-  padding: 15px;
-  background: #fff9e6;
-  border-radius: 6px;
-  margin-bottom: 15px;
+.info-placeholder {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  color: #666;
+  font-size: 16px;
+  height: 100%;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #007AFF;
+}
+
+/* 信息区块样式 */
+.info-block {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #e8e8e8;
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.block-header .el-icon {
+  font-size: 18px;
+  color: #007AFF;
+}
+
+.block-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.block-body {
+  padding: 14px 16px;
+}
+
+/* 关联省份区块 */
+.provinces-block {
+  flex-shrink: 0;
+}
+
+.province-tag {
+  margin: 4px 8px 4px 0;
+}
+
+/* 空状态文本样式 */
+.empty-text {
+  color: #999;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* 关联原因区块 */
+.reasons-block {
+  flex-shrink: 0;
+}
+
+.reasons-block .block-body {
+  padding: 10px 16px 14px;
 }
 
 /* 关联原因说明样式 */
-.related-reasons {
-  padding: 0;
-  background: #ffffff;
-  margin-bottom: 20px;
-}
-
-.reason-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.reason-count {
-  font-size: 13px;
-  color: #999;
-  font-weight: 400;
-}
-
 .reason-item {
   background: #fafafa;
-  border-radius: 0;
-  margin-bottom: 1px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
   transition: all 0.2s ease;
 }
 
-.reason-item:first-child {
-  border-radius: 8px 8px 0 0;
+.reason-item:hover {
+  border-color: #007AFF;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
 }
 
 .reason-item:last-child {
-  border-radius: 0 0 8px 8px;
   margin-bottom: 0;
-}
-
-.reason-item:only-child {
-  border-radius: 8px;
 }
 
 .reason-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s ease;
 }
 
 .reason-header:hover {
-  background-color: #f0f0f0;
+  background-color: #f5f5f5;
 }
 
 .reason-province {
@@ -1255,14 +1368,14 @@ onUnmounted(() => {
 }
 
 .reason-summary {
-  color: #333;
-  font-size: 13px;
   flex: 1;
+  font-size: 13px;
+  color: #666;
   line-height: 1.5;
 }
 
 .expand-icon {
-  font-size: 12px;
+  font-size: 14px;
   color: #999;
   transition: transform 0.3s ease;
 }
@@ -1282,7 +1395,7 @@ onUnmounted(() => {
 }
 
 .project-item {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
 }
@@ -1298,7 +1411,7 @@ onUnmounted(() => {
 .project-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1a1a1a;
+  color: #333;
   margin-bottom: 8px;
 }
 
@@ -1322,53 +1435,93 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.reason-text {
-  color: #666;
+/* 股票列表区块 */
+.stocks-block {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
 }
 
-.investment-list {
+.stocks-block .block-body {
   flex: 1;
   overflow-y: auto;
-  padding-right: 5px;
 }
 
-.investment-card {
-  margin-bottom: 15px;
-  border: 2px solid #e5e5e5;
+.stocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.card-header {
+.stock-item {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #e8e8e8;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.stock-item:hover {
+  border-color: #007AFF;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+  background: #fff;
+}
+
+.stock-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 10px;
 }
 
-.card-title {
+.stock-name {
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 600;
   color: #333;
 }
 
-.card-content p {
-  margin: 8px 0;
+.stock-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
   font-size: 14px;
-  color: #666;
-  line-height: 1.6;
 }
 
-.amount {
-  color: #f56c6c;
-  font-weight: bold;
-  font-size: 15px;
+.stock-price {
+  color: #ff6b35;
+  font-weight: 600;
+  font-size: 16px;
 }
 
-.description {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #eee;
+.stock-industry {
   color: #999;
   font-size: 13px;
-  line-height: 1.8;
+}
+
+.stock-more {
+  padding-top: 10px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.stock-more p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.stock-more p strong {
+  color: #333;
+  font-weight: 500;
+}
+
+.stock-more .description {
+  margin: -2px 0 6px 0;
+  padding-top: 8px;
+  border-top: 1px dashed #e8e8e8;
 }
 
 /* 滚动条样式 */

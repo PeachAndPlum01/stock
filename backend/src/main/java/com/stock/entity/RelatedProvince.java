@@ -48,44 +48,24 @@ public class RelatedProvince implements Serializable {
     private BigDecimal correlationScore;
 
     /**
-     * 关联项目数量
-     */
-    private Integer jointProjectCount;
-
-    /**
-     * 源省份投资次数
-     */
-    private Integer sourceInvestCount;
-
-    /**
-     * 目标省份投资次数
-     */
-    private Integer targetInvestCount;
-
-    /**
-     * 关联项目总投资金额（万元）
-     */
-    private BigDecimal totalInvestmentAmount;
-
-    /**
      * 行业相似度（0-1之间）
      */
     private BigDecimal industrySimilarity;
 
     /**
-     * 投资类型相似度（0-1之间）
+     * 概念题材相似度（0-1之间）
      */
-    private BigDecimal investmentTypeSimilarity;
+    private BigDecimal conceptSimilarity;
 
     /**
-     * 地理距离（千米）
+     * 公司性质相似度（0-1之间）
      */
-    private Integer geographicDistance;
+    private BigDecimal companyTypeSimilarity;
 
     /**
-     * 关联项目ID列表（JSON数组）
+     * 共同概念题材（逗号分隔）
      */
-    private String relatedProjectIds;
+    private String commonConcepts;
 
     /**
      * 共同行业（逗号分隔）
@@ -93,19 +73,24 @@ public class RelatedProvince implements Serializable {
     private String commonIndustries;
 
     /**
-     * 共同投资类型（逗号分隔）
+     * 关联原因说明（JSON格式）
      */
-    private String commonInvestmentTypes;
+    private String correlationReason;
+
+    /**
+     * 源省份涨幅前5股票信息（JSON）
+     */
+    private String sourceTop5Stocks;
+
+    /**
+     * 目标省份涨幅前5股票信息（JSON）
+     */
+    private String targetTop5Stocks;
 
     /**
      * 计算方法标识
      */
     private String calculationMethod;
-
-    /**
-     * 权重配置（JSON）
-     */
-    private String weightConfig;
 
     /**
      * 创建时间
@@ -167,38 +152,6 @@ public class RelatedProvince implements Serializable {
         this.correlationScore = correlationScore;
     }
 
-    public Integer getJointProjectCount() {
-        return jointProjectCount;
-    }
-
-    public void setJointProjectCount(Integer jointProjectCount) {
-        this.jointProjectCount = jointProjectCount;
-    }
-
-    public Integer getSourceInvestCount() {
-        return sourceInvestCount;
-    }
-
-    public void setSourceInvestCount(Integer sourceInvestCount) {
-        this.sourceInvestCount = sourceInvestCount;
-    }
-
-    public Integer getTargetInvestCount() {
-        return targetInvestCount;
-    }
-
-    public void setTargetInvestCount(Integer targetInvestCount) {
-        this.targetInvestCount = targetInvestCount;
-    }
-
-    public BigDecimal getTotalInvestmentAmount() {
-        return totalInvestmentAmount;
-    }
-
-    public void setTotalInvestmentAmount(BigDecimal totalInvestmentAmount) {
-        this.totalInvestmentAmount = totalInvestmentAmount;
-    }
-
     public BigDecimal getIndustrySimilarity() {
         return industrySimilarity;
     }
@@ -207,28 +160,28 @@ public class RelatedProvince implements Serializable {
         this.industrySimilarity = industrySimilarity;
     }
 
-    public BigDecimal getInvestmentTypeSimilarity() {
-        return investmentTypeSimilarity;
+    public BigDecimal getConceptSimilarity() {
+        return conceptSimilarity;
     }
 
-    public void setInvestmentTypeSimilarity(BigDecimal investmentTypeSimilarity) {
-        this.investmentTypeSimilarity = investmentTypeSimilarity;
+    public void setConceptSimilarity(BigDecimal conceptSimilarity) {
+        this.conceptSimilarity = conceptSimilarity;
     }
 
-    public Integer getGeographicDistance() {
-        return geographicDistance;
+    public BigDecimal getCompanyTypeSimilarity() {
+        return companyTypeSimilarity;
     }
 
-    public void setGeographicDistance(Integer geographicDistance) {
-        this.geographicDistance = geographicDistance;
+    public void setCompanyTypeSimilarity(BigDecimal companyTypeSimilarity) {
+        this.companyTypeSimilarity = companyTypeSimilarity;
     }
 
-    public String getRelatedProjectIds() {
-        return relatedProjectIds;
+    public String getCommonConcepts() {
+        return commonConcepts;
     }
 
-    public void setRelatedProjectIds(String relatedProjectIds) {
-        this.relatedProjectIds = relatedProjectIds;
+    public void setCommonConcepts(String commonConcepts) {
+        this.commonConcepts = commonConcepts;
     }
 
     public String getCommonIndustries() {
@@ -239,12 +192,28 @@ public class RelatedProvince implements Serializable {
         this.commonIndustries = commonIndustries;
     }
 
-    public String getCommonInvestmentTypes() {
-        return commonInvestmentTypes;
+    public String getCorrelationReason() {
+        return correlationReason;
     }
 
-    public void setCommonInvestmentTypes(String commonInvestmentTypes) {
-        this.commonInvestmentTypes = commonInvestmentTypes;
+    public void setCorrelationReason(String correlationReason) {
+        this.correlationReason = correlationReason;
+    }
+
+    public String getSourceTop5Stocks() {
+        return sourceTop5Stocks;
+    }
+
+    public void setSourceTop5Stocks(String sourceTop5Stocks) {
+        this.sourceTop5Stocks = sourceTop5Stocks;
+    }
+
+    public String getTargetTop5Stocks() {
+        return targetTop5Stocks;
+    }
+
+    public void setTargetTop5Stocks(String targetTop5Stocks) {
+        this.targetTop5Stocks = targetTop5Stocks;
     }
 
     public String getCalculationMethod() {
@@ -253,14 +222,6 @@ public class RelatedProvince implements Serializable {
 
     public void setCalculationMethod(String calculationMethod) {
         this.calculationMethod = calculationMethod;
-    }
-
-    public String getWeightConfig() {
-        return weightConfig;
-    }
-
-    public void setWeightConfig(String weightConfig) {
-        this.weightConfig = weightConfig;
     }
 
     public LocalDateTime getCreateTime() {

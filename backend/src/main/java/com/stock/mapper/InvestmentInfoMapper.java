@@ -46,4 +46,36 @@ public interface InvestmentInfoMapper extends BaseMapper<InvestmentInfo> {
             "OR (related_provinces LIKE CONCAT('%', #{provinceA}, '%') " +
             "AND related_provinces LIKE CONCAT('%', #{provinceB}, '%')))")
     List<InvestmentInfo> selectJointByProvincePair(String provinceA, String provinceB);
+
+    /**
+     * 根据省份查询近十日涨幅最高的8个股票
+     * @param province 省份简称
+     * @return 股票列表（按涨幅降序排序，限制8条）
+     */
+    @Select("SELECT * FROM investment_info WHERE province = #{province} AND status = 1 " +
+            "AND ten_day_change IS NOT NULL " +
+            "ORDER BY ten_day_change DESC LIMIT 8")
+    List<InvestmentInfo> selectTop8ByTenDayChange(String province);
+
+    /**
+     * 根据省份查询近十日涨幅最高的5个股票
+     * 用于计算省份相关度
+     * @param province 省份简称
+     * @return 股票列表（按涨幅降序排序，限制5条）
+     */
+    @Select("SELECT * FROM investment_info WHERE province = #{province} AND status = 1 " +
+            "AND ten_day_change IS NOT NULL " +
+            "ORDER BY ten_day_change DESC LIMIT 5")
+    List<InvestmentInfo> selectTop5ByTenDayChange(String province);
+
+    /**
+     * 根据省份查询近十日涨幅最高的3个股票
+     * 用于生成关联原因说明
+     * @param province 省份简称
+     * @return 股票列表（按涨幅降序排序，限制3条）
+     */
+    @Select("SELECT * FROM investment_info WHERE province = #{province} AND status = 1 " +
+            "AND ten_day_change IS NOT NULL " +
+            "ORDER BY ten_day_change DESC LIMIT 3")
+    List<InvestmentInfo> selectTop3ByTenDayChange(String province);
 }

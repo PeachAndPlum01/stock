@@ -64,6 +64,11 @@ public class InvestmentInfo implements Serializable {
     private String investmentType;
 
     /**
+     * 近十日总涨幅（%）
+     */
+    private BigDecimal tenDayChange;
+
+    /**
      * 投资描述
      */
     private String description;
@@ -166,6 +171,14 @@ public class InvestmentInfo implements Serializable {
 
     public void setInvestmentType(String investmentType) {
         this.investmentType = investmentType;
+    }
+
+    public BigDecimal getTenDayChange() {
+        return tenDayChange;
+    }
+
+    public void setTenDayChange(BigDecimal tenDayChange) {
+        this.tenDayChange = tenDayChange;
     }
 
     public String getDescription() {

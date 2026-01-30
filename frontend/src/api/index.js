@@ -51,14 +51,3 @@ export const getMapData = () => {
     method: 'get'
   })
 }
-
-/**
- * 添加投资信息
- */
-export const addInvestment = (data) => {
-  return request({
-    url: '/investment/add',
-    method: 'post',
-    data
-  })
-}

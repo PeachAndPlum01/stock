@@ -1,10 +1,8 @@
 package com.stock.service;
 
 import com.stock.entity.InvestmentInfo;
-import com.stock.entity.ProvinceDistance;
 import com.stock.entity.RelatedProvince;
 import com.stock.mapper.InvestmentInfoMapper;
-import com.stock.mapper.ProvinceDistanceMapper;
 import com.stock.mapper.RelatedProvinceMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,30 +28,26 @@ public class ProvinceCorrelationService {
     private InvestmentInfoMapper investmentInfoMapper;
 
     @Autowired
-    private ProvinceDistanceMapper provinceDistanceMapper;
-
-    @Autowired
     private RelatedProvinceMapper relatedProvinceMapper;
 
     /**
-     * 各维度权重配置
+     * 各维度权重配置（基于涨幅前5股票相似度）
      */
     private static final Map<String, BigDecimal> DIMENSION_WEIGHTS = new HashMap<>();
     static {
-        DIMENSION_WEIGHTS.put("JOINT_PROJECT", new BigDecimal("0.4"));
-        DIMENSION_WEIGHTS.put("INDUSTRY", new BigDecimal("0.2"));
-        DIMENSION_WEIGHTS.put("INVESTMENT_TYPE", new BigDecimal("0.15"));
-        DIMENSION_WEIGHTS.put("GEOGRAPHY", new BigDecimal("0.1"));
-        DIMENSION_WEIGHTS.put("INVESTMENT_AMOUNT", new BigDecimal("0.15"));
+        DIMENSION_WEIGHTS.put("CONCEPT", new BigDecimal("0.5"));     // 概念题材相似度权重50%
+        DIMENSION_WEIGHTS.put("INDUSTRY", new BigDecimal("0.3"));    // 行业相似度权重30%
+        DIMENSION_WEIGHTS.put("COMPANY_TYPE", new BigDecimal("0.2")); // 公司性质相似度权重20%
     }
 
     /**
      * 定时任务：每天凌晨2点重新计算所有省份相关度
+     * 基于涨幅前5股票的概念题材、行业、公司性质相似度
      */
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional(rollbackFor = Exception.class)
     public void recalculateAllCorrelations() {
-        logger.info("开始计算所有省份相关度...");
+        logger.info("开始基于涨幅前5股票计算所有省份相关度...");
         
         try {
             // 获取所有省份
@@ -71,8 +65,9 @@ public class ProvinceCorrelationService {
                     String provinceA = provinceList.get(i);
                     String provinceB = provinceList.get(j);
                     
-                    RelatedProvince correlation = calculateCorrelation(provinceA, provinceB);
-                    if (correlation != null && correlation.getCorrelationScore().compareTo(BigDecimal.ZERO) > 0) {
+                    RelatedProvince correlation = calculateCorrelationByTop5Stocks(provinceA, provinceB);
+                    if (correlation != null && correlation.getCorrelationScore().compareTo(new BigDecimal("0.15")) > 0) {
+                        // 降低阈值到0.15，让股票数量少的省份也能找到相关省份
                         relatedProvinceMapper.insert(correlation);
                         count++;
                     }
@@ -98,52 +93,47 @@ public class ProvinceCorrelationService {
     }
 
     /**
-     * 计算两个省份之间的相关度
+     * 基于涨幅前N股票计算两个省份之间的相关度
+     * 核心逻辑：对比两个省份涨幅前N的股票在概念题材、行业、公司性质等方面的相似度
+     * 支持股票数量少的省份，使用实际可用的股票数量进行计算
+     * 
      * @param provinceA 省份A简称
      * @param provinceB 省份B简称
      * @return 省份相关度对象
      */
-    public RelatedProvince calculateCorrelation(String provinceA, String provinceB) {
+    public RelatedProvince calculateCorrelationByTop5Stocks(String provinceA, String provinceB) {
         try {
-            // 获取两个省份的关联项目
-            List<InvestmentInfo> jointProjects = investmentInfoMapper.selectJointByProvincePair(provinceA, provinceB);
+            // 获取两个省份涨幅前5的股票
+            List<InvestmentInfo> top5StocksA = investmentInfoMapper.selectTop5ByTenDayChange(provinceA);
+            List<InvestmentInfo> top5StocksB = investmentInfoMapper.selectTop5ByTenDayChange(provinceB);
             
-            // 如果没有共同项目，返回null或低相关度
-            if (jointProjects == null || jointProjects.isEmpty()) {
-                // 计算地理相关度
-                BigDecimal geoScore = calculateGeographicScore(provinceA, provinceB);
-                if (geoScore.compareTo(BigDecimal.ZERO) > 0) {
-                    RelatedProvince correlation = new RelatedProvince();
-                    correlation.setSourceProvince(provinceA);
-                    correlation.setSourceProvinceCode(getProvinceCode(provinceA));
-                    correlation.setTargetProvince(provinceB);
-                    correlation.setTargetProvinceCode(getProvinceCode(provinceB));
-                    correlation.setCorrelationScore(geoScore.multiply(DIMENSION_WEIGHTS.get("GEOGRAPHY")));
-                    correlation.setGeographicDistance(getGeographicDistance(provinceA, provinceB));
-                    correlation.setJointProjectCount(0);
-                    correlation.setCalculationMethod("GEOGRAPHY_ONLY");
-                    return correlation;
-                }
+            // 如果任一省份涨幅数据不足，返回null
+            if (top5StocksA == null || top5StocksA.isEmpty() || 
+                top5StocksB == null || top5StocksB.isEmpty()) {
                 return null;
             }
             
-            // 获取各自省份的投资项目
-            List<InvestmentInfo> investA = investmentInfoMapper.selectByRelatedProvince(provinceA);
-            List<InvestmentInfo> investB = investmentInfoMapper.selectByRelatedProvince(provinceB);
+            // 提取概念题材（从title字段，逗号分隔）
+            List<String> conceptsA = extractConcepts(top5StocksA);
+            List<String> conceptsB = extractConcepts(top5StocksB);
             
-            // 计算各个维度的相关度
-            BigDecimal jointProjectScore = calculateJointProjectScore(jointProjects, investA, investB);
-            BigDecimal industryScore = calculateIndustrySimilarity(investA, investB, jointProjects);
-            BigDecimal investmentTypeScore = calculateInvestmentTypeSimilarity(investA, investB, jointProjects);
-            BigDecimal geographicScore = calculateGeographicScore(provinceA, provinceB);
-            BigDecimal amountScore = calculateInvestmentAmountScore(jointProjects);
+            // 提取行业（从industry字段）
+            List<String> industriesA = extractIndustries(top5StocksA);
+            List<String> industriesB = extractIndustries(top5StocksB);
             
-            // 计算综合相关度得分
-            BigDecimal correlationScore = jointProjectScore.multiply(DIMENSION_WEIGHTS.get("JOINT_PROJECT"))
-                    .add(industryScore.multiply(DIMENSION_WEIGHTS.get("INDUSTRY")))
-                    .add(investmentTypeScore.multiply(DIMENSION_WEIGHTS.get("INVESTMENT_TYPE")))
-                    .add(geographicScore.multiply(DIMENSION_WEIGHTS.get("GEOGRAPHY")))
-                    .add(amountScore.multiply(DIMENSION_WEIGHTS.get("INVESTMENT_AMOUNT")));
+            // 提取公司性质（从investmentType字段，如市盈率高低代表公司性质）
+            List<String> companyTypesA = extractCompanyTypes(top5StocksA);
+            List<String> companyTypesB = extractCompanyTypes(top5StocksB);
+            
+            // 计算各维度相似度
+            BigDecimal conceptSimilarity = calculateConceptSimilarity(conceptsA, conceptsB);
+            BigDecimal industrySimilarity = calculateIndustrySimilarity(top5StocksA, top5StocksB);
+            BigDecimal companyTypeSimilarity = calculateCompanyTypeSimilarity(companyTypesA, companyTypesB);
+            
+            // 加权计算综合相关度
+            BigDecimal correlationScore = conceptSimilarity.multiply(DIMENSION_WEIGHTS.get("CONCEPT"))
+                    .add(industrySimilarity.multiply(DIMENSION_WEIGHTS.get("INDUSTRY")))
+                    .add(companyTypeSimilarity.multiply(DIMENSION_WEIGHTS.get("COMPANY_TYPE")));
             
             // 确保得分在0-1之间
             correlationScore = correlationScore.min(BigDecimal.ONE).max(BigDecimal.ZERO);
@@ -155,17 +145,27 @@ public class ProvinceCorrelationService {
             correlation.setTargetProvince(provinceB);
             correlation.setTargetProvinceCode(getProvinceCode(provinceB));
             correlation.setCorrelationScore(correlationScore.setScale(6, RoundingMode.HALF_UP));
-            correlation.setJointProjectCount(jointProjects.size());
-            correlation.setSourceInvestCount(investA != null ? investA.size() : 0);
-            correlation.setTargetInvestCount(investB != null ? investB.size() : 0);
-            correlation.setTotalInvestmentAmount(calculateTotalAmount(jointProjects));
-            correlation.setIndustrySimilarity(industryScore.setScale(6, RoundingMode.HALF_UP));
-            correlation.setInvestmentTypeSimilarity(investmentTypeScore.setScale(6, RoundingMode.HALF_UP));
-            correlation.setGeographicDistance(getGeographicDistance(provinceA, provinceB));
-            correlation.setRelatedProjectIds(getProjectIdsJson(jointProjects));
-            correlation.setCommonIndustries(getCommonIndustries(investA, investB, jointProjects));
-            correlation.setCommonInvestmentTypes(getCommonInvestmentTypes(investA, investB, jointProjects));
-            correlation.setCalculationMethod("COMPREHENSIVE");
+            correlation.setConceptSimilarity(conceptSimilarity.setScale(6, RoundingMode.HALF_UP));
+            correlation.setIndustrySimilarity(industrySimilarity.setScale(6, RoundingMode.HALF_UP));
+            correlation.setCompanyTypeSimilarity(companyTypeSimilarity.setScale(6, RoundingMode.HALF_UP));
+            
+            // 提取共同概念和行业
+            List<String> commonConcepts = findCommonElements(conceptsA, conceptsB);
+            List<String> commonIndustries = findCommonElements(industriesA, industriesB);
+            correlation.setCommonConcepts(String.join(",", commonConcepts));
+            correlation.setCommonIndustries(String.join(",", commonIndustries));
+            
+            // 生成关联原因说明（JSON格式）
+            correlation.setCorrelationReason(generateCorrelationReason(
+                correlationScore, conceptSimilarity, industrySimilarity, companyTypeSimilarity,
+                commonConcepts, commonIndustries, top5StocksA, top5StocksB
+            ));
+            
+            // 保存涨幅前5股票信息（JSON格式）
+            correlation.setSourceTop5Stocks(generateStocksJson(top5StocksA));
+            correlation.setTargetTop5Stocks(generateStocksJson(top5StocksB));
+            
+            correlation.setCalculationMethod("TOP5_SIMILARITY");
             
             return correlation;
         } catch (Exception e) {
@@ -175,58 +175,135 @@ public class ProvinceCorrelationService {
     }
 
     /**
-     * 计算共同项目相关度（使用Jaccard相似度）
+     * 提取概念题材列表
      */
-    private BigDecimal calculateJointProjectScore(List<InvestmentInfo> jointProjects, 
-                                                  List<InvestmentInfo> investA, 
-                                                  List<InvestmentInfo> investB) {
-        int jointCount = jointProjects != null ? jointProjects.size() : 0;
-        int countA = investA != null ? investA.size() : 0;
-        int countB = investB != null ? investB.size() : 0;
-        
-        if (countA == 0 || countB == 0) {
+    private List<String> extractConcepts(List<InvestmentInfo> stocks) {
+        Set<String> concepts = new HashSet<>();
+        for (InvestmentInfo stock : stocks) {
+            String title = stock.getTitle();
+            if (title != null && !title.isEmpty()) {
+                // title字段格式：概念1,概念2,概念3
+                String[] parts = title.split(",");
+                for (String part : parts) {
+                    String concept = part.trim();
+                    if (!concept.isEmpty()) {
+                        concepts.add(concept);
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(concepts);
+    }
+
+    /**
+     * 提取行业列表
+     */
+    private List<String> extractIndustries(List<InvestmentInfo> stocks) {
+        Set<String> industries = new HashSet<>();
+        for (InvestmentInfo stock : stocks) {
+            String industry = stock.getIndustry();
+            if (industry != null && !industry.isEmpty()) {
+                industries.add(industry.trim());
+            }
+        }
+        return new ArrayList<>(industries);
+    }
+
+    /**
+     * 提取公司性质列表（基于市盈率高低判断）
+     */
+    private List<String> extractCompanyTypes(List<InvestmentInfo> stocks) {
+        Set<String> types = new HashSet<>();
+        for (InvestmentInfo stock : stocks) {
+            String investmentType = stock.getInvestmentType();
+            if (investmentType != null && !investmentType.isEmpty()) {
+                try {
+                    BigDecimal peRatio = new BigDecimal(investmentType);
+                    if (peRatio.compareTo(new BigDecimal("0")) <= 0) {
+                        types.add("亏损企业");
+                    } else if (peRatio.compareTo(new BigDecimal("15")) <= 0) {
+                        types.add("价值股");
+                    } else if (peRatio.compareTo(new BigDecimal("50")) <= 0) {
+                        types.add("成长股");
+                    } else {
+                        types.add("高估股");
+                    }
+                } catch (NumberFormatException e) {
+                    // 如果市盈率不是数字，直接使用原始值
+                    types.add(investmentType.trim());
+                }
+            }
+        }
+        return new ArrayList<>(types);
+    }
+
+    /**
+     * 计算概念题材相似度（使用Jaccard相似度）
+     */
+    private BigDecimal calculateConceptSimilarity(List<String> conceptsA, List<String> conceptsB) {
+        if (conceptsA.isEmpty() || conceptsB.isEmpty()) {
             return BigDecimal.ZERO;
         }
+        
+        Set<String> setA = new HashSet<>(conceptsA);
+        Set<String> setB = new HashSet<>(conceptsB);
         
         // Jaccard相似度: |A ∩ B| / |A ∪ B|
-        int unionCount = countA + countB - jointCount;
-        if (unionCount == 0) {
+        Set<String> intersection = new HashSet<>(setA);
+        intersection.retainAll(setB);
+        
+        Set<String> union = new HashSet<>(setA);
+        union.addAll(setB);
+        
+        if (union.isEmpty()) {
             return BigDecimal.ZERO;
         }
         
-        return new BigDecimal(jointCount).divide(new BigDecimal(unionCount), 6, RoundingMode.HALF_UP);
+        return new BigDecimal(intersection.size())
+                .divide(new BigDecimal(union.size()), 6, RoundingMode.HALF_UP);
     }
 
     /**
      * 计算行业相似度（使用余弦相似度）
      */
-    private BigDecimal calculateIndustrySimilarity(List<InvestmentInfo> investA, 
-                                                   List<InvestmentInfo> investB,
-                                                   List<InvestmentInfo> jointProjects) {
-        // 统计行业频率
-        Map<String, Integer> industryFreqA = getIndustryFrequency(investA);
-        Map<String, Integer> industryFreqB = getIndustryFrequency(investB);
+    private BigDecimal calculateIndustrySimilarity(List<InvestmentInfo> stocksA, List<InvestmentInfo> stocksB) {
+        Map<String, Integer> freqA = new HashMap<>();
+        Map<String, Integer> freqB = new HashMap<>();
         
-        if (industryFreqA.isEmpty() || industryFreqB.isEmpty()) {
+        for (InvestmentInfo stock : stocksA) {
+            String industry = stock.getIndustry();
+            if (industry != null && !industry.isEmpty()) {
+                freqA.put(industry, freqA.getOrDefault(industry, 0) + 1);
+            }
+        }
+        
+        for (InvestmentInfo stock : stocksB) {
+            String industry = stock.getIndustry();
+            if (industry != null && !industry.isEmpty()) {
+                freqB.put(industry, freqB.getOrDefault(industry, 0) + 1);
+            }
+        }
+        
+        if (freqA.isEmpty() || freqB.isEmpty()) {
             return BigDecimal.ZERO;
         }
         
-        // 计算余弦相似度
+        // 余弦相似度
         double dotProduct = 0;
         double normA = 0;
         double normB = 0;
         
         Set<String> allIndustries = new HashSet<>();
-        allIndustries.addAll(industryFreqA.keySet());
-        allIndustries.addAll(industryFreqB.keySet());
+        allIndustries.addAll(freqA.keySet());
+        allIndustries.addAll(freqB.keySet());
         
         for (String industry : allIndustries) {
-            int freqA = industryFreqA.getOrDefault(industry, 0);
-            int freqB = industryFreqB.getOrDefault(industry, 0);
+            int countA = freqA.getOrDefault(industry, 0);
+            int countB = freqB.getOrDefault(industry, 0);
             
-            dotProduct += freqA * freqB;
-            normA += freqA * freqA;
-            normB += freqB * freqB;
+            dotProduct += countA * countB;
+            normA += countA * countA;
+            normB += countB * countB;
         }
         
         if (normA == 0 || normB == 0) {
@@ -238,24 +315,21 @@ public class ProvinceCorrelationService {
     }
 
     /**
-     * 计算投资类型相似度（使用Jaccard相似度）
+     * 计算公司性质相似度（使用Jaccard相似度）
      */
-    private BigDecimal calculateInvestmentTypeSimilarity(List<InvestmentInfo> investA, 
-                                                         List<InvestmentInfo> investB,
-                                                         List<InvestmentInfo> jointProjects) {
-        Set<String> typesA = getInvestmentTypes(investA);
-        Set<String> typesB = getInvestmentTypes(investB);
-        
+    private BigDecimal calculateCompanyTypeSimilarity(List<String> typesA, List<String> typesB) {
         if (typesA.isEmpty() || typesB.isEmpty()) {
             return BigDecimal.ZERO;
         }
         
-        // Jaccard相似度
-        Set<String> intersection = new HashSet<>(typesA);
-        intersection.retainAll(typesB);
+        Set<String> setA = new HashSet<>(typesA);
+        Set<String> setB = new HashSet<>(typesB);
         
-        Set<String> union = new HashSet<>(typesA);
-        union.addAll(typesB);
+        Set<String> intersection = new HashSet<>(setA);
+        intersection.retainAll(setB);
+        
+        Set<String> union = new HashSet<>(setA);
+        union.addAll(setB);
         
         if (union.isEmpty()) {
             return BigDecimal.ZERO;
@@ -266,149 +340,226 @@ public class ProvinceCorrelationService {
     }
 
     /**
-     * 计算地理距离相关度（使用距离衰减函数）
+     * 查找两个列表的共同元素
      */
-    private BigDecimal calculateGeographicScore(String provinceA, String provinceB) {
-        Integer distance = getGeographicDistance(provinceA, provinceB);
-        if (distance == null || distance == 0) {
-            return BigDecimal.ONE;
-        }
+    private List<String> findCommonElements(List<String> listA, List<String> listB) {
+        Set<String> setA = new HashSet<>(listA);
+        Set<String> setB = new HashSet<>(listB);
         
-        // 距离衰减函数: Score = 1 / (1 + distance / scale)
-        // scale = 2000km
-        double scale = 2000;
-        double score = 1.0 / (1.0 + distance / scale);
-        
-        return new BigDecimal(score).setScale(6, RoundingMode.HALF_UP);
+        setA.retainAll(setB);
+        return new ArrayList<>(setA);
     }
 
     /**
-     * 计算投资金额相关度
+     * 生成关联原因说明（自然语言格式）
+     * 格式：近期两省排名前几的股票在上涨原因相似，他们分别是新疆的XXX、XXX，青海的XXX、XXX，都因风电、光伏等清洁能源概念上涨
      */
-    private BigDecimal calculateInvestmentAmountScore(List<InvestmentInfo> jointProjects) {
-        if (jointProjects == null || jointProjects.isEmpty()) {
-            return BigDecimal.ZERO;
+    private String generateCorrelationReason(BigDecimal correlationScore,
+                                            BigDecimal conceptSimilarity,
+                                            BigDecimal industrySimilarity,
+                                            BigDecimal companyTypeSimilarity,
+                                            List<String> commonConcepts,
+                                            List<String> commonIndustries,
+                                            List<InvestmentInfo> top5StocksA,
+                                            List<InvestmentInfo> top5StocksB) {
+        StringBuilder reason = new StringBuilder();
+        reason.append("{");
+        
+        // 保留技术指标（供后台分析使用）
+        reason.append("\"correlationScore\":\"").append(correlationScore.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)).append("%\",");
+        reason.append("\"conceptSimilarity\":\"").append(conceptSimilarity.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)).append("%\",");
+        reason.append("\"industrySimilarity\":\"").append(industrySimilarity.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)).append("%\",");
+        reason.append("\"companyTypeSimilarity\":\"").append(companyTypeSimilarity.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)).append("%\",");
+        
+        // 共同概念说明
+        if (!commonConcepts.isEmpty()) {
+            reason.append("\"commonConcepts\":[");
+            for (int i = 0; i < commonConcepts.size(); i++) {
+                reason.append("\"").append(commonConcepts.get(i)).append("\"");
+                if (i < commonConcepts.size() - 1) {
+                    reason.append(",");
+                }
+            }
+            reason.append("],");
         }
         
-        // 归一化：使用log函数压缩金额范围
-        BigDecimal totalAmount = calculateTotalAmount(jointProjects);
-        double logAmount = Math.log10(totalAmount.doubleValue() + 1);
+        // 共同行业说明
+        if (!commonIndustries.isEmpty()) {
+            reason.append("\"commonIndustries\":[");
+            for (int i = 0; i < commonIndustries.size(); i++) {
+                reason.append("\"").append(commonIndustries.get(i)).append("\"");
+                if (i < commonIndustries.size() - 1) {
+                    reason.append(",");
+                }
+            }
+            reason.append("],");
+        }
         
-        // 假设最大金额为100亿元(1000000万元)
-        double maxLogAmount = Math.log10(1000001);
+        // 生成自然语言描述
+        String naturalLanguage = generateNaturalLanguageDescription(
+            top5StocksA, top5StocksB, commonConcepts, commonIndustries
+        );
+        reason.append("\"description\":\"").append(naturalLanguage).append("\"");
         
-        double score = Math.min(logAmount / maxLogAmount, 1.0);
-        return new BigDecimal(score).setScale(6, RoundingMode.HALF_UP);
+        reason.append("}");
+        return reason.toString();
     }
 
     /**
-     * 获取行业频率统计
+     * 生成自然语言格式的关联原因描述
+     * 格式：贵州：朗玛信息<br/>江西：洪都航空<br/>关联原因：行业分布、地域特征
      */
-    private Map<String, Integer> getIndustryFrequency(List<InvestmentInfo> investments) {
-        Map<String, Integer> freqMap = new HashMap<>();
-        if (investments == null) {
-            return freqMap;
+    private String generateNaturalLanguageDescription(List<InvestmentInfo> stocksA,
+                                                      List<InvestmentInfo> stocksB,
+                                                      List<String> commonConcepts,
+                                                      List<String> commonIndustries) {
+        StringBuilder desc = new StringBuilder();
+        
+        // 获取两个省份的代表股票（各取前3个）
+        List<InvestmentInfo> top3A = stocksA.stream().limit(3).collect(java.util.stream.Collectors.toList());
+        List<InvestmentInfo> top3B = stocksB.stream().limit(3).collect(java.util.stream.Collectors.toList());
+        
+        // 获取省份名称（从第一只股票获取）
+        String provinceA = !top3A.isEmpty() ? top3A.get(0).getProvince() : "A省";
+        String provinceB = !top3B.isEmpty() ? top3B.get(0).getProvince() : "B省";
+        
+        // 转换为完整省份名
+        String provinceAFull = convertProvinceToFullName(provinceA);
+        String provinceBFull = convertProvinceToFullName(provinceB);
+        
+        // 第一行：省份A：股票名称
+        if (!top3A.isEmpty()) {
+            desc.append(provinceAFull).append("：");
+            for (int i = 0; i < top3A.size(); i++) {
+                desc.append(top3A.get(i).getCompanyName());
+                if (i < top3A.size() - 1) {
+                    desc.append("、");
+                }
+            }
+            desc.append("<br/>");
         }
         
-        for (InvestmentInfo inv : investments) {
-            String industry = inv.getIndustry();
-            if (industry != null && !industry.isEmpty()) {
-                freqMap.put(industry, freqMap.getOrDefault(industry, 0) + 1);
+        // 第二行：省份B：股票名称
+        if (!top3B.isEmpty()) {
+            desc.append(provinceBFull).append("：");
+            for (int i = 0; i < top3B.size(); i++) {
+                desc.append(top3B.get(i).getCompanyName());
+                if (i < top3B.size() - 1) {
+                    desc.append("、");
+                }
+            }
+            desc.append("<br/>");
+        }
+        
+        // 第三行：关联原因
+        desc.append("关联原因：");
+        
+        // 优先使用共同概念题材
+        if (!commonConcepts.isEmpty()) {
+            int count = Math.min(commonConcepts.size(), 3);
+            for (int i = 0; i < count; i++) {
+                desc.append(commonConcepts.get(i));
+                if (i < count - 1) {
+                    desc.append("、");
+                }
+            }
+            if (commonConcepts.size() > 3) {
+                desc.append("等");
             }
         }
-        return freqMap;
-    }
-
-    /**
-     * 获取投资类型集合
-     */
-    private Set<String> getInvestmentTypes(List<InvestmentInfo> investments) {
-        Set<String> types = new HashSet<>();
-        if (investments == null) {
-            return types;
-        }
-        
-        for (InvestmentInfo inv : investments) {
-            String type = inv.getInvestmentType();
-            if (type != null && !type.isEmpty()) {
-                types.add(type);
+        // 如果没有共同概念，使用共同行业
+        else if (!commonIndustries.isEmpty()) {
+            int count = Math.min(commonIndustries.size(), 2);
+            for (int i = 0; i < count; i++) {
+                desc.append(commonIndustries.get(i));
+                if (i < count - 1) {
+                    desc.append("、");
+                }
+            }
+            if (commonIndustries.size() > 2) {
+                desc.append("等");
             }
         }
-        return types;
+        // 如果都没有，使用默认描述
+        else {
+            desc.append("行业分布、地域特征");
+        }
+        
+        return desc.toString();
     }
 
     /**
-     * 计算总投资金额
+     * 将省份简称转换为完整名称
      */
-    private BigDecimal calculateTotalAmount(List<InvestmentInfo> investments) {
-        BigDecimal total = BigDecimal.ZERO;
-        if (investments == null) {
-            return total;
+    private String convertProvinceToFullName(String abbreviation) {
+        if (abbreviation == null || abbreviation.isEmpty()) {
+            return "未知省份";
         }
         
-        for (InvestmentInfo inv : investments) {
-            if (inv.getInvestmentAmount() != null) {
-                total = total.add(inv.getInvestmentAmount());
+        // 省份简称映射表
+        Map<String, String> provinceMap = new HashMap<>();
+        provinceMap.put("新", "新疆");
+        provinceMap.put("藏", "西藏");
+        provinceMap.put("蒙", "内蒙古");
+        provinceMap.put("黑", "黑龙江");
+        provinceMap.put("吉", "吉林");
+        provinceMap.put("辽", "辽宁");
+        provinceMap.put("冀", "河北");
+        provinceMap.put("晋", "山西");
+        provinceMap.put("陕", "陕西");
+        provinceMap.put("甘", "甘肃");
+        provinceMap.put("宁", "宁夏");
+        provinceMap.put("青", "青海");
+        provinceMap.put("鲁", "山东");
+        provinceMap.put("豫", "河南");
+        provinceMap.put("苏", "江苏");
+        provinceMap.put("浙", "浙江");
+        provinceMap.put("皖", "安徽");
+        provinceMap.put("闽", "福建");
+        provinceMap.put("赣", "江西");
+        provinceMap.put("鄂", "湖北");
+        provinceMap.put("湘", "湖南");
+        provinceMap.put("粤", "广东");
+        provinceMap.put("桂", "广西");
+        provinceMap.put("琼", "海南");
+        provinceMap.put("川", "四川");
+        provinceMap.put("贵", "贵州");
+        provinceMap.put("云", "云南");
+        provinceMap.put("渝", "重庆");
+        provinceMap.put("京", "北京");
+        provinceMap.put("津", "天津");
+        provinceMap.put("沪", "上海");
+        
+        return provinceMap.getOrDefault(abbreviation.trim(), abbreviation);
+    }
+
+    /**
+     * 生成股票信息的JSON字符串
+     */
+    private String generateStocksJson(List<InvestmentInfo> stocks) {
+        if (stocks == null || stocks.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < stocks.size(); i++) {
+            InvestmentInfo stock = stocks.get(i);
+            json.append("{");
+            json.append("\"id\":").append(stock.getId()).append(",");
+            json.append("\"companyName\":\"").append(stock.getCompanyName()).append("\",");
+            json.append("\"industry\":\"").append(stock.getIndustry()).append("\",");
+            json.append("\"tenDayChange\":\"").append(stock.getTenDayChange()).append("%\",");
+            json.append("\"concepts\":\"").append(stock.getTitle() != null ? stock.getTitle() : "").append("\"");
+            json.append("}");
+            if (i < stocks.size() - 1) {
+                json.append(",");
             }
         }
-        return total;
+        json.append("]");
+        return json.toString();
     }
 
-    /**
-     * 获取项目ID的JSON字符串
-     */
-    private String getProjectIdsJson(List<InvestmentInfo> investments) {
-        if (investments == null || investments.isEmpty()) {
-            return null;
-        }
-        
-        List<Long> ids = investments.stream()
-                .map(InvestmentInfo::getId)
-                .collect(Collectors.toList());
-        
-        return ids.toString();
-    }
 
-    /**
-     * 获取共同行业
-     */
-    private String getCommonIndustries(List<InvestmentInfo> investA, 
-                                       List<InvestmentInfo> investB,
-                                       List<InvestmentInfo> jointProjects) {
-        Map<String, Integer> freqA = getIndustryFrequency(investA);
-        Map<String, Integer> freqB = getIndustryFrequency(investB);
-        
-        List<String> commonIndustries = new ArrayList<>();
-        for (String industry : freqA.keySet()) {
-            if (freqB.containsKey(industry)) {
-                commonIndustries.add(industry);
-            }
-        }
-        
-        return String.join(",", commonIndustries);
-    }
-
-    /**
-     * 获取共同投资类型
-     */
-    private String getCommonInvestmentTypes(List<InvestmentInfo> investA, 
-                                            List<InvestmentInfo> investB,
-                                            List<InvestmentInfo> jointProjects) {
-        Set<String> typesA = getInvestmentTypes(investA);
-        Set<String> typesB = getInvestmentTypes(investB);
-        
-        typesA.retainAll(typesB);
-        
-        return String.join(",", typesA);
-    }
-
-    /**
-     * 获取地理距离
-     */
-    private Integer getGeographicDistance(String provinceA, String provinceB) {
-        ProvinceDistance distance = provinceDistanceMapper.selectByProvincePair(provinceA, provinceB);
-        return distance != null ? distance.getDistanceKm() : null;
-    }
 
     /**
      * 获取省份编码
