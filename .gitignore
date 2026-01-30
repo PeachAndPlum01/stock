@@ -18,6 +18,8 @@ frontend/.vite/
 
 # 日志
 *.log
+backend/logs/
+logs/
 
 # 系统文件
 .DS_Store

@@ -126,3 +126,35 @@ mvn clean install
 - 点击省份：该省份视觉上浮起，显示投资信息
 - 关联提示：高亮显示有相关投资信息的其他省份
 - 数据展示：显示该省份近期10条投资信息
+
+## 日志系统
+
+项目集成了完善的日志系统，所有日志统一存储在 `backend/logs/` 目录下。
+
+### 日志文件
+- `all.log` - 所有级别日志
+- `error.log` - ERROR 级别日志
+- `warn.log` - WARN 级别日志  
+- `info.log` - INFO 级别日志
+- `debug.log` - DEBUG 级别日志
+
+### 日志API
+前端可以通过以下API查看日志：
+- `GET /api/logs/files` - 获取日志文件列表
+- `GET /api/logs/content?fileName=error.log&lines=100` - 读取日志内容
+- `GET /api/logs/search?fileName=all.log&keyword=exception` - 搜索日志
+- `GET /api/logs/stats` - 获取日志统计信息
+
+### 查看日志
+```bash
+# 实时查看所有日志
+tail -f backend/logs/all.log
+
+# 查看错误日志
+tail -f backend/logs/error.log
+
+# 搜索关键词
+grep "exception" backend/logs/error.log
+```
+
+详细说明请查看：[日志系统文档](backend/LOGGING.md)
