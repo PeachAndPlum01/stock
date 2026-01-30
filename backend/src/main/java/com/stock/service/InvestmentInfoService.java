@@ -49,21 +49,33 @@ public class InvestmentInfoService {
         // 从数据库查询
         List<InvestmentInfo> investmentList = investmentInfoMapper.selectRecentByProvince(province, limit);
 
-        // 获取关联省份
-        Set<String> relatedProvinces = new HashSet<>();
+        // 获取关联省份并计算关联强度
+        Map<String, Integer> provinceRelationCount = new HashMap<>();
         for (InvestmentInfo info : investmentList) {
             if (info.getRelatedProvinces() != null && !info.getRelatedProvinces().isEmpty()) {
                 String[] provinces = info.getRelatedProvinces().split(",");
-                relatedProvinces.addAll(Arrays.asList(provinces));
+                for (String relatedProvince : provinces) {
+                    relatedProvince = relatedProvince.trim();
+                    if (!relatedProvince.equals(province)) {
+                        provinceRelationCount.put(relatedProvince, 
+                            provinceRelationCount.getOrDefault(relatedProvince, 0) + 1);
+                    }
+                }
             }
         }
-        relatedProvinces.remove(province); // 移除当前省份
+
+        // 按关联强度排序，取前三个关联性最强的省份
+        List<String> topRelatedProvinces = provinceRelationCount.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(3)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
 
         // 构建返回结果
         Map<String, Object> result = new HashMap<>();
         result.put("province", province);
         result.put("investmentList", investmentList);
-        result.put("relatedProvinces", new ArrayList<>(relatedProvinces));
+        result.put("relatedProvinces", topRelatedProvinces);
         result.put("total", investmentList.size());
 
         // 缓存结果

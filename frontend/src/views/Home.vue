@@ -11,65 +11,105 @@
       </div>
     </div>
 
-    <!-- 主内容区 -->
-    <div class="main-content">
-      <!-- 左侧地图 -->
-      <div class="map-section">
-        <div class="section-title">中国投资地图</div>
-        <div ref="mapRef" class="china-map"></div>
+    <!-- 主体布局 -->
+    <div class="main-layout">
+      <!-- 左侧导航栏 -->
+      <div class="sidebar" :class="{ 'sidebar-collapsed': isCollapsed }">
+        <div class="sidebar-header">
+          <h3 v-show="!isCollapsed">功能导航</h3>
+          <el-button 
+            class="collapse-btn" 
+            :icon="isCollapsed ? 'Expand' : 'Fold'" 
+            @click="toggleSidebar"
+            circle
+            size="small"
+          />
+        </div>
+        <el-menu
+          :default-active="activeMenu"
+          class="sidebar-menu"
+          background-color="#f8f9fa"
+          text-color="#333"
+          active-text-color="#007AFF"
+          router
+          @select="handleMenuSelect"
+          :collapse="isCollapsed"
+        >
+          <el-menu-item index="region-analysis">
+            <el-icon><Location /></el-icon>
+            <span>地区选相关度</span>
+          </el-menu-item>
+          <el-menu-item index="concept-analysis">
+            <el-icon><TrendCharts /></el-icon>
+            <span>概念选相关度</span>
+          </el-menu-item>
+          <el-menu-item index="discussion">
+            <el-icon><ChatDotRound /></el-icon>
+            <span>讨论区</span>
+          </el-menu-item>
+        </el-menu>
       </div>
 
-      <!-- 右侧信息面板 -->
-      <div class="info-section">
-        <div class="section-title">
-          {{ selectedProvince ? `${selectedProvince} - 投资信息` : '请点击地图选择省份' }}
+      <!-- 主内容区 -->
+      <div class="main-content" :class="{ 'content-expanded': isCollapsed }">
+        <!-- 左侧地图 -->
+        <div class="map-section">
+          <div class="section-title">中国投资地图</div>
+          <div ref="mapRef" class="china-map"></div>
         </div>
-        
-        <div v-if="selectedProvince" class="info-content">
-          <!-- 关联省份提示 -->
-          <div v-if="relatedProvinces.length > 0" class="related-provinces">
-            <el-tag type="warning" size="small">关联省份</el-tag>
-            <el-tag
-              v-for="province in relatedProvinces"
-              :key="province"
-              type="info"
-              size="small"
-              style="margin-left: 8px"
-            >
-              {{ province }}
-            </el-tag>
-          </div>
 
-          <!-- 投资信息列表 -->
-          <div class="investment-list">
-            <el-card
-              v-for="item in investmentList"
-              :key="item.id"
-              class="investment-card"
-              shadow="hover"
-            >
-              <template #header>
-                <div class="card-header">
-                  <span class="card-title">{{ item.title }}</span>
-                  <el-tag type="success" size="small">{{ item.investmentType }}</el-tag>
+        <!-- 右侧信息面板 -->
+        <div class="info-section">
+          <div class="section-title">
+            {{ selectedProvince ? `${selectedProvince} - 投资信息` : '请点击地图选择省份' }}
+          </div>
+          
+          <div v-if="selectedProvince" class="info-content">
+            <!-- 关联省份提示 -->
+            <div v-if="relatedProvinces.length > 0" class="related-provinces">
+              <el-tag type="warning" size="small">关联省份</el-tag>
+              <el-tag
+                v-for="province in relatedProvinces"
+                :key="province"
+                type="info"
+                size="small"
+                style="margin-left: 8px"
+              >
+                {{ province }}
+              </el-tag>
+            </div>
+
+            <!-- 投资信息列表 -->
+            <div class="investment-list">
+              <el-card
+                v-for="item in investmentList"
+                :key="item.id"
+                class="investment-card"
+                shadow="hover"
+              >
+                <template #header>
+                  <div class="card-header">
+                    <span class="card-title">{{ item.title }}</span>
+                    <el-tag type="success" size="small">{{ item.investmentType }}</el-tag>
+                  </div>
+                </template>
+                
+                <div class="card-content">
+                  <p><strong>公司：</strong>{{ item.companyName }}</p>
+                  <p><strong>行业：</strong>{{ item.industry }}</p>
+                  <p><strong>城市：</strong>{{ item.city }}</p>
+                  <p><strong>金额：</strong><span class="amount">{{ item.investmentAmount }} 万元</span></p>
+                  <p><strong>日期：</strong>{{ item.investmentDate }}</p>
+                  <p class="description"><strong>描述：</strong>{{ item.description }}</p>
                 </div>
-              </template>
-              
-              <div class="card-content">
-                <p><strong>公司：</strong>{{ item.companyName }}</p>
-                <p><strong>行业：</strong>{{ item.industry }}</p>
-                <p><strong>城市：</strong>{{ item.city }}</p>
-                <p><strong>金额：</strong><span class="amount">{{ item.investmentAmount }} 万元</span></p>
-                <p><strong>日期：</strong>{{ item.investmentDate }}</p>
-                <p class="description"><strong>描述：</strong>{{ item.description }}</p>
-              </div>
-            </el-card>
+              </el-card>
 
-            <el-empty v-if="investmentList.length === 0" description="暂无投资信息" />
+              <el-empty v-if="investmentList.length === 0" description="暂无投资信息" />
+            </div>
           </div>
-        </div>
 
-        <el-empty v-else description="请点击地图上的省份查看投资信息" />
+          <el-empty v-else description="请点击地图上的省份查看投资信息" />
+        </div>
       </div>
     </div>
   </div>
@@ -79,6 +119,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Location, TrendCharts, ChatDotRound, Expand, Fold } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getMapData, getInvestmentByProvince, logout } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -94,6 +135,33 @@ const selectedProvince = ref('')
 const investmentList = ref([])
 const relatedProvinces = ref([])
 const mapData = ref([])
+const activeMenu = ref('region-analysis') // 默认选中地区选相关度
+const isCollapsed = ref(false) // 导航栏是否收缩
+
+// 切换导航栏展开收缩
+const toggleSidebar = () => {
+  isCollapsed.value = !isCollapsed.value
+}
+
+// 菜单选择处理
+const handleMenuSelect = (index) => {
+  activeMenu.value = index
+  // 根据选择的菜单项处理不同的功能
+  switch (index) {
+    case 'region-analysis':
+      // 地区选相关度功能（当前已有）
+      ElMessage.info('已切换到地区选相关度功能')
+      break
+    case 'concept-analysis':
+      // 概念选相关度功能（未来扩展）
+      ElMessage.info('概念选相关度功能开发中...')
+      break
+    case 'discussion':
+      // 讨论区功能（未来扩展）
+      ElMessage.info('讨论区功能开发中...')
+      break
+  }
+}
 
 // 初始化地图
 const initMap = () => {
@@ -136,14 +204,39 @@ const initMap = () => {
         silent: false, // 确保地图可以交互
         label: {
           show: true,
-          fontSize: 10,
-          color: '#333'
+          fontSize: function(params) {
+            // 根据省份名称动态调整字体大小
+            const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
+            const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+            
+            if (smallAreas.includes(params.name)) {
+              return 8; // 小区域使用更小的字体
+            } else if (mediumAreas.includes(params.name)) {
+              return 9; // 中等区域使用中等字体
+            } else {
+              return 10; // 大区域使用正常字体
+            }
+          },
+          color: '#333',
+          fontWeight: 'normal'
         },
         emphasis: {
           label: {
             show: true,
             color: '#fff',
-            fontSize: 12
+            fontSize: function(params) {
+              // 高亮状态下也保持相对大小比例
+              const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
+              const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+              
+              if (smallAreas.includes(params.name)) {
+                return 9;
+              } else if (mediumAreas.includes(params.name)) {
+                return 10;
+              } else {
+                return 12;
+              }
+            }
           },
           itemStyle: {
             areaColor: '#ffd700',
@@ -157,7 +250,18 @@ const initMap = () => {
           label: {
             show: true,
             color: '#fff',
-            fontSize: 12
+            fontSize: function(params) {
+              const smallAreas = ['澳门特别行政区', '香港特别行政区', '台湾', '上海', '北京', '天津', '重庆'];
+              const mediumAreas = ['海南', '宁夏', '青海', '甘肃'];
+              
+              if (smallAreas.includes(params.name)) {
+                return 9;
+              } else if (mediumAreas.includes(params.name)) {
+                return 10;
+              } else {
+                return 12;
+              }
+            }
           },
           itemStyle: {
             areaColor: '#ff6b6b',
@@ -225,19 +329,63 @@ const handleProvinceClick = async (provinceName) => {
     console.log('📋 投资列表:', res.data.investmentList)
     console.log('📋 投资列表长度:', res.data.investmentList?.length)
     
-    investmentList.value = res.data.investmentList
-    relatedProvinces.value = res.data.relatedProvinces
+    // 修复数据绑定：使用正确的字段名
+    investmentList.value = res.data.investmentList || []
+    relatedProvinces.value = res.data.relatedProvinces || []
 
-    // 高亮关联省份
+    // 高亮关联性最强的三个省份
     if (chartInstance && relatedProvinces.value.length > 0) {
-      const highlightData = mapData.value.map(item => {
+      // 首先重置所有省份的颜色
+      const resetData = mapData.value.map(item => ({
+        ...item,
+        itemStyle: {
+          areaColor: '#e0f3f8',
+          borderColor: '#fff',
+          borderWidth: 1
+        }
+      }))
+
+      // 高亮当前选中的省份
+      const highlightData = resetData.map(item => {
+        if (item.name === provinceName) {
+          return {
+            ...item,
+            itemStyle: {
+              areaColor: '#ff6b6b',
+              borderColor: '#fff',
+              borderWidth: 2
+            }
+          }
+        }
+        // 高亮关联性最强的三个省份
         if (relatedProvinces.value.includes(item.name)) {
           return {
             ...item,
             itemStyle: {
               areaColor: '#ffeb3b',
               borderColor: '#fff',
-              borderWidth: 1
+              borderWidth: 2
+            }
+          }
+        }
+        return item
+      })
+
+      chartInstance.setOption({
+        series: [{
+          data: highlightData
+        }]
+      })
+    } else {
+      // 如果没有关联省份，只高亮当前选中的省份
+      const highlightData = mapData.value.map(item => {
+        if (item.name === provinceName) {
+          return {
+            ...item,
+            itemStyle: {
+              areaColor: '#ff6b6b',
+              borderColor: '#fff',
+              borderWidth: 2
             }
           }
         }
@@ -311,6 +459,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 0 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .header-left h1 {
@@ -330,12 +479,133 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
+.main-layout {
+  flex: 1;
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+/* 左侧导航栏样式 */
+.sidebar {
+  width: 240px;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 100;
+}
+
+/* 导航栏收缩状态 */
+.sidebar-collapsed {
+  width: 64px;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-collapsed .sidebar-header h3 {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.collapse-btn {
+  background: #007AFF;
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.collapse-btn:hover {
+  background: #0051D5;
+  transform: scale(1.1);
+}
+
+.sidebar-collapsed .collapse-btn {
+  margin: 0 auto;
+}
+
+.sidebar-menu {
+  flex: 1;
+  border: none;
+  padding: 10px 0;
+  transition: all 0.3s ease;
+}
+
+.sidebar-menu .el-menu-item {
+  height: 50px;
+  line-height: 50px;
+  margin: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-collapsed .sidebar-menu .el-menu-item {
+  margin: 4px 5px;
+  padding: 0 12px !important;
+}
+
+.sidebar-menu .el-menu-item:hover {
+  background-color: #e6f7ff;
+  color: #007AFF;
+}
+
+.sidebar-menu .el-menu-item.is-active {
+  background-color: #007AFF;
+  color: #fff;
+  font-weight: 500;
+}
+
+.sidebar-menu .el-icon {
+  font-size: 18px;
+  margin-right: 8px;
+  transition: margin-right 0.3s ease;
+}
+
+.sidebar-collapsed .sidebar-menu .el-icon {
+  margin-right: 0;
+}
+
+.sidebar-menu .el-menu-item span {
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-collapsed .sidebar-menu .el-menu-item span {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 主内容区样式 */
 .main-content {
   flex: 1;
   display: flex;
   padding: 20px;
   gap: 20px;
   overflow: hidden;
+  background: #f5f7fa;
+  transition: all 0.3s ease;
 }
 
 .map-section {
@@ -346,6 +616,8 @@ onUnmounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  transition: all 0.3s ease;
 }
 
 .info-section {
@@ -357,6 +629,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 450px;
+  transition: all 0.3s ease;
 }
 
 .section-title {
@@ -452,5 +726,86 @@ onUnmounted(() => {
 
 .investment-list::-webkit-scrollbar-thumb:hover {
   background: #bbb;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .main-content {
+    flex-direction: column;
+    padding: 15px;
+  }
+  
+  .info-section {
+    width: 100%;
+    min-width: auto;
+    height: 400px;
+  }
+  
+  .map-section {
+    height: 500px;
+  }
+  
+  .sidebar {
+    width: 200px;
+  }
+  
+  .sidebar-collapsed {
+    width: 64px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 180px;
+    position: absolute;
+    left: 0;
+    top: 60px;
+    height: calc(100vh - 60px);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar-collapsed {
+    width: 180px;
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    padding: 10px;
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .header {
+    padding: 0 15px;
+  }
+  
+  .header-left h1 {
+    font-size: 18px;
+  }
+  
+  .info-section {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+/* 移动端菜单遮罩 */
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+  }
+  
+  .sidebar-collapsed + .sidebar-overlay {
+    display: block;
+  }
 }
 </style>
