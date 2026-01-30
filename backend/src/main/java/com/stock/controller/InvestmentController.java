@@ -24,7 +24,7 @@ public class InvestmentController {
     @GetMapping("/province/{province}")
     public Result<Map<String, Object>> getByProvince(
             @PathVariable String province,
-            @RequestParam(defaultValue = "10") Integer limit) {
+            @RequestParam(defaultValue = "100") Integer limit) {
         try {
             Map<String, Object> data = investmentInfoService.getInvestmentByProvince(province, limit);
             return Result.success(data);

@@ -35,7 +35,7 @@ public class InvestmentInfoService {
      */
     public Map<String, Object> getInvestmentByProvince(String province, Integer limit) {
         if (limit == null || limit <= 0) {
-            limit = 10;
+            limit = 100;
         }
 
         // 将省份名称转换为简称格式，确保与数据库格式一致
@@ -54,6 +54,7 @@ public class InvestmentInfoService {
 
         // 获取关联省份并计算关联强度
         Map<String, Integer> provinceRelationCount = new HashMap<>();
+        Map<String, List<InvestmentInfo>> provinceRelatedProjects = new HashMap<>(); // 记录每个关联省份对应的项目
         for (InvestmentInfo info : investmentList) {
             if (info.getRelatedProvinces() != null && !info.getRelatedProvinces().isEmpty()) {
                 String[] provinces = info.getRelatedProvinces().split(",");
@@ -62,6 +63,9 @@ public class InvestmentInfoService {
                     if (!relatedProvince.equals(province)) {
                         provinceRelationCount.put(relatedProvince, 
                             provinceRelationCount.getOrDefault(relatedProvince, 0) + 1);
+                        // 将关联省份名称转换为简称后存储，确保后续查询时key一致
+                        String abbreviatedProvince = convertProvinceToAbbreviation(relatedProvince);
+                        provinceRelatedProjects.computeIfAbsent(abbreviatedProvince, k -> new ArrayList<>()).add(info);
                     }
                 }
             }
@@ -74,11 +78,62 @@ public class InvestmentInfoService {
                 .map(entry -> convertProvinceToAbbreviation(entry.getKey()))
                 .collect(Collectors.toList());
 
+        // 构建关联原因说明
+        Map<String, Object> relatedReasons = new HashMap<>();
+        for (String relatedProvince : topRelatedProvinces) {
+            List<InvestmentInfo> relatedProjects = provinceRelatedProjects.get(relatedProvince);
+            if (relatedProjects != null && !relatedProjects.isEmpty()) {
+                // 统计共同行业
+                Set<String> commonIndustries = relatedProjects.stream()
+                        .map(InvestmentInfo::getIndustry)
+                        .collect(Collectors.toSet());
+                
+                // 统计共同投资金额
+                double totalAmount = relatedProjects.stream()
+                        .mapToDouble(info -> info.getInvestmentAmount() != null ? info.getInvestmentAmount().doubleValue() : 0)
+                        .sum();
+                
+                // 提取项目名称
+                List<String> projectNames = relatedProjects.stream()
+                        .map(InvestmentInfo::getTitle)
+                        .collect(Collectors.toList());
+                
+                // 构建详细的项目信息
+                List<Map<String, Object>> projectDetails = relatedProjects.stream()
+                        .map(info -> {
+                            Map<String, Object> detail = new HashMap<>();
+                            detail.put("title", info.getTitle());
+                            detail.put("industry", info.getIndustry());
+                            detail.put("amount", info.getInvestmentAmount());
+                            return detail;
+                        })
+                        .collect(Collectors.toList());
+                
+                // 生成说明文字
+                StringBuilder reason = new StringBuilder();
+                reason.append("共同投资了").append(relatedProjects.size()).append("个项目");
+                if (commonIndustries.size() > 0) {
+                    reason.append("，涉及").append(String.join("、", commonIndustries)).append("行业");
+                }
+                if (totalAmount > 0) {
+                    reason.append("，总投资金额").append(String.format("%.0f", totalAmount)).append("万元");
+                }
+                
+                // 构建返回对象，包含说明文字和项目详情
+                Map<String, Object> reasonInfo = new HashMap<>();
+                reasonInfo.put("description", reason.toString());
+                reasonInfo.put("projects", projectDetails);
+                
+                relatedReasons.put(relatedProvince, reasonInfo);
+            }
+        }
+
         // 构建返回结果
         Map<String, Object> result = new HashMap<>();
         result.put("province", normalizedProvince);
         result.put("investmentList", investmentList);
         result.put("relatedProvinces", topRelatedProvinces);
+        result.put("relatedReasons", relatedReasons);
         result.put("total", investmentList.size());
 
         // 缓存结果

@@ -3,11 +3,13 @@ package com.stock;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 股票投资信息系统启动类
  */
 @SpringBootApplication
+@EnableScheduling
 @MapperScan("com.stock.mapper")
 public class StockApplication {
 
