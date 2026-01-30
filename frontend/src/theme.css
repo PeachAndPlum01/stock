@@ -1,0 +1,117 @@
+/* Element Plus 自定义主题 - 苹果风格 */
+:root {
+  /* 主色调 - 苹果蓝 */
+  --el-color-primary: #007AFF;
+  --el-color-primary-light-3: #3395FF;
+  --el-color-primary-light-5: #66B0FF;
+  --el-color-primary-light-7: #99CBFF;
+  --el-color-primary-light-8: #B3D9FF;
+  --el-color-primary-light-9: #CCE6FF;
+  --el-color-primary-dark-2: #0051D5;
+  
+  /* 成功色 - 苹果绿 */
+  --el-color-success: #34C759;
+  
+  /* 警告色 - 苹果橙 */
+  --el-color-warning: #FF9500;
+  
+  /* 危险色 - 苹果红 */
+  --el-color-danger: #FF3B30;
+  
+  /* 信息色 - 苹果灰 */
+  --el-color-info: #8E8E93;
+  
+  /* 链接色 */
+  --el-color-link: #007AFF;
+  --el-color-link-hover: #0051D5;
+}
+
+/* 按钮悬停效果优化 */
+.el-button--primary {
+  background-color: #007AFF;
+  border-color: #007AFF;
+  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background-color: #3395FF;
+  border-color: #3395FF;
+  box-shadow: 0 4px 8px rgba(0, 122, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.el-button--primary:active {
+  background-color: #0051D5;
+  border-color: #0051D5;
+  transform: translateY(0);
+}
+
+/* 标签颜色优化 */
+.el-tag--danger {
+  background-color: #FFE5E5;
+  border-color: #FFCCCC;
+  color: #FF3B30;
+}
+
+/* 输入框聚焦时的边框颜色 */
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px #007AFF inset;
+}
+
+/* 复选框和单选框选中颜色 */
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-radio__input.is-checked .el-radio__inner {
+  background-color: #007AFF;
+  border-color: #007AFF;
+}
+
+/* 开关选中颜色 */
+.el-switch.is-checked .el-switch__core {
+  background-color: #34C759;
+}
+
+/* 进度条颜色 */
+.el-progress-bar__inner {
+  background-color: #007AFF;
+}
+
+/* 滑块颜色 */
+.el-slider__button {
+  border-color: #007AFF;
+}
+
+.el-slider__bar {
+  background-color: #007AFF;
+}
+
+/* 卡片样式优化 - 苹果风格 */
+.el-card {
+  border-radius: 12px;
+  border: 1px solid #E5E5EA;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.el-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* 按钮圆角优化 */
+.el-button {
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* 输入框圆角优化 */
+.el-input__wrapper {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #E5E5EA inset;
+  transition: all 0.3s ease;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px #C7C7CC inset;
+}
