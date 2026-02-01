@@ -3,7 +3,22 @@ import { ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
+  
+  // 安全地解析userInfo，避免JSON.parse错误
+  const getUserInfo = () => {
+    try {
+      const stored = localStorage.getItem('userInfo')
+      if (!stored || stored === 'undefined' || stored === 'null') {
+        return {}
+      }
+      return JSON.parse(stored)
+    } catch (e) {
+      console.warn('解析userInfo失败，使用默认值:', e)
+      return {}
+    }
+  }
+  
+  const userInfo = ref(getUserInfo())
 
   // 设置token
   const setToken = (newToken) => {

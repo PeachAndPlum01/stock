@@ -60,11 +60,7 @@
           <!-- 左侧地图 -->
           <div class="map-section">
             <div class="section-title">中国投资地图</div>
-            <div v-if="mapData.length === 0" class="map-loading">
-              <el-icon class="loading-icon"><Loading /></el-icon>
-              <span>地图加载中...</span>
-            </div>
-            <div ref="mapRef" class="china-map" v-else></div>
+            <div ref="mapRef" class="china-map"></div>
           </div>
 
           <!-- 右侧信息面板 -->
@@ -689,9 +685,11 @@ const loadMapData = async (retryCount = 3) => {
       console.error(`❌ 第 ${attempt} 次加载失败：`, error)
       
       if (attempt === retryCount) {
-        console.error('❌ 所有重试均失败，放弃加载')
-        ElMessage.error('加载地图数据失败，请刷新页面重试')
-        return false
+        console.error('❌ 所有重试均失败，使用空数据显示地图')
+        ElMessage.warning('地图统计数据加载失败，显示基础地图')
+        // 即使失败也设置空数组，让地图能够显示
+        mapData.value = []
+        return true
       }
       
       // 等待一段时间后重试（指数退避）
@@ -701,7 +699,7 @@ const loadMapData = async (retryCount = 3) => {
     }
   }
   
-  return false
+  return true
 }
 
 
@@ -918,13 +916,8 @@ onMounted(async () => {
     await new Promise(resolve => setTimeout(resolve, 200))
     console.log('✅ DOM渲染完成')
     
-    // 先加载地图数据
-    const dataLoaded = await loadMapData()
-    if (!dataLoaded) {
-      console.error('❌ 地图数据加载失败，停止初始化')
-      ElMessage.error('地图数据加载失败，请刷新页面重试')
-      return
-    }
+    // 先加载地图数据（即使失败也继续）
+    await loadMapData()
     
     // 确保当前视图是地区相关度，并且DOM已经渲染
     await new Promise(resolve => {
@@ -993,7 +986,11 @@ onMounted(async () => {
     
     // 页面加载完成后显示欢迎信息
     setTimeout(() => {
-      ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看股票信息')
+      if (mapData.value.length > 0) {
+        ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看股票信息')
+      } else {
+        ElMessage.info('地图已加载，但统计数据暂时无法获取。地图功能可能受限。')
+      }
       console.log('✅ 欢迎消息已显示')
     }, 500)
     

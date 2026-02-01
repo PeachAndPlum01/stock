@@ -93,7 +93,12 @@ const handleLogin = async () => {
         
         // 保存token和用户信息
         userStore.setToken(res.data.token)
-        userStore.setUserInfo(res.data.userInfo)
+        // 后端返回的数据结构：{ token, userId, username, nickname }
+        userStore.setUserInfo({
+          userId: res.data.userId,
+          username: res.data.username,
+          nickname: res.data.nickname
+        })
         
         ElMessage.success('登录成功')
         

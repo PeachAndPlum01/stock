@@ -1,0 +1,77 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: stock-data-service
+  
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6379
+    database: 2
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+  
+  # RabbitMQ配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+    publisher-returns: true
+    publisher-confirm-type: correlated
+
+# Tushare API配置
+tushare:
+  token: ${TUSHARE_TOKEN:your_tushare_token_here}
+  api-url: https://api.tushare.pro
+  timeout: 30
+  # 实时数据更新间隔（秒）
+  real-time-interval: 10
+  # 批量更新间隔（秒）
+  batch-update-interval: 60
+
+# Actuator端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.stock.data: DEBUG
+    org.springframework.amqp: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/stock-data-service.log
+
+# 股票代码映射（示例配置）
+stock-codes:
+  mappings:
+    - company: "中芯国际"
+      code: "688981.SH"
+    - company: "东方财富"
+      code: "300059.SZ"
+    - company: "比亚迪"
+      code: "002594.SZ"
+    - company: "阿里巴巴"
+      code: "09988.HK"
+    - company: "宁德时代"
+      code: "300750.SZ"

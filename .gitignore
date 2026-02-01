@@ -3,11 +3,20 @@ backend/target/
 backend/.mvn/
 backend/mvnw
 backend/mvnw.cmd
+target/
+*/target/
+*.jar
+*.war
+*.ear
+*.class
 
 # Node
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+node_modules/
+dist/
+npm-debug.log*
 
 # IDE
 .idea/
@@ -20,6 +29,7 @@ frontend/.vite/
 *.log
 backend/logs/
 logs/
+*/logs/
 
 # 系统文件
 .DS_Store
@@ -28,3 +38,30 @@ Thumbs.db
 # 环境配置
 *.env
 *.env.local
+
+# 旧应用（冗余代码）
+stock-investment-service-old/
+*/stock-investment-service-old/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 环境配置文件
+.env
+.env.local
+.env.*.local
+
+# Docker数据卷
+docker-data/
+
+# 过程性文档（不提交）
+*_REPORT.md
+*_GUIDE.md
+*_SUMMARY.md
+QUICKSTART.md
+PROJECT_STRUCTURE.md
+cleanup-*.sh
+migrate-*.sh

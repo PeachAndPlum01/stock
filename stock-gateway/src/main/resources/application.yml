@@ -1,0 +1,87 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: stock-gateway
+  
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 3000
+  
+  # Gateway路由配置
+  cloud:
+    gateway:
+      routes:
+        # 认证服务路由
+        - id: auth-service
+          uri: http://localhost:8081  # TODO: 集成服务发现后改为 lb://stock-auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+        
+        # 股票数据服务路由
+        - id: stock-data-service
+          uri: http://localhost:8082  # TODO: 集成服务发现后改为 lb://stock-data-service
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - StripPrefix=1
+        
+        # 投资信息服务路由
+        - id: investment-service
+          uri: http://localhost:8083  # TODO: 集成服务发现后改为 lb://stock-investment-service
+          predicates:
+            - Path=/api/investment/**
+          filters:
+            - StripPrefix=1
+        
+        # 省份关联服务路由
+        - id: correlation-service
+          uri: http://localhost:8084  # TODO: 集成服务发现后改为 lb://stock-correlation-service
+          predicates:
+            - Path=/api/correlation/**
+          filters:
+            - StripPrefix=1
+      
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      
+      # 默认过滤器
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+
+# JWT配置
+jwt:
+  secret: stock-investment-system-jwt-secret-key-2024
+  expiration: 86400000
+
+# Actuator配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.stock.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/gateway.log
