@@ -13,7 +13,7 @@
 
     <artifactId>stock-investment-service</artifactId>
     <name>stock-investment-service</name>
-    <description>投资信息服务 - 股票投资信息CRUD、数据统计</description>
+    <description>投资信息服务 - 天问投资信息CRUD、数据统计</description>
 
     <dependencies>
         <!-- Spring Boot Web -->

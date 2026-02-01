@@ -17,7 +17,7 @@
     <version>1.0.0</version>
     <packaging>pom</packaging>
     <name>stock-microservices</name>
-    <description>股票投资信息展示系统 - 微服务架构</description>
+    <description>天问 - 微服务架构</description>
 
     <modules>
         <module>stock-gateway</module>

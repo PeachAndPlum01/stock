@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <div class="header">
       <div class="header-left">
-        <h1>股票投资信息展示系统</h1>
+    <h1>天问</h1>
       </div>
       <div class="header-right">
         <span class="username">欢迎，{{ userStore.userInfo.nickname || userStore.userInfo.username }}</span>
@@ -987,7 +987,7 @@ onMounted(async () => {
     // 页面加载完成后显示欢迎信息
     setTimeout(() => {
       if (mapData.value.length > 0) {
-        ElMessage.success('欢迎使用股票投资信息展示系统！请点击地图上的省份查看股票信息')
+      ElMessage.success('欢迎使用天问！请点击地图上的省份查看股票信息')
       } else {
         ElMessage.info('地图已加载，但统计数据暂时无法获取。地图功能可能受限。')
       }

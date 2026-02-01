@@ -1,7 +1,7 @@
 {
   "name": "stock-frontend",
   "version": "1.0.0",
-  "description": "股票投资信息展示系统前端",
+  "description": "天问前端",
   "type": "module",
   "scripts": {
     "dev": "vite",

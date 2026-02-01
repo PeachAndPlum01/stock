@@ -1,4 +1,4 @@
-# 股票投资信息展示系统 - Docker Compose配置
+# 天问 - Docker Compose配置
 
 version: '3.8'
 

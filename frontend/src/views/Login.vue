@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h2>股票投资信息展示系统</h2>
+      <h2>天问</h2>
         <p>Stock Investment Information System</p>
       </div>
       
