@@ -1,7 +1,8 @@
 package com.stock.data.rabbitmq;
 
 import com.stock.data.model.StockQuote;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -16,9 +17,10 @@ import java.util.UUID;
  * 股票数据消息生产者
  * 用于向消息队列发送实时股票数据
  */
-@Slf4j
 @Service
 public class StockDataProducer {
+
+    private static final Logger log = LoggerFactory.getLogger(StockDataProducer.class);
 
     @Autowired
     private RabbitTemplate rabbitTemplate;

@@ -1,15 +1,8 @@
 package com.stock.data.common;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 /**
  * 统一响应结果
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Result<T> {
 
     /**
@@ -26,6 +19,39 @@ public class Result<T> {
      * 响应数据
      */
     private T data;
+
+    public Result() {
+    }
+
+    public Result(Integer code, String message, T data) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+
+    public Integer getCode() {
+        return code;
+    }
+
+    public void setCode(Integer code) {
+        this.code = code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
 
     /**
      * 成功响应

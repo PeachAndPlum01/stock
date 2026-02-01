@@ -6,7 +6,8 @@ import com.stock.data.service.StockRealtimeService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,11 +17,12 @@ import java.util.List;
  * 股票数据API控制器
  * 提供股票数据的REST API接口
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/stock")
 @Api(tags = "股票数据API")
 public class StockDataController {
+
+    private static final Logger log = LoggerFactory.getLogger(StockDataController.class);
 
     @Autowired
     private StockRealtimeService stockRealtimeService;

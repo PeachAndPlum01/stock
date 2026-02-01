@@ -5,7 +5,8 @@ import com.stock.data.config.StockCodeMapping;
 import com.stock.data.config.TushareProperties;
 import com.stock.data.model.StockQuote;
 import com.stock.data.rabbitmq.StockDataProducer;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,9 +25,10 @@ import java.util.stream.Collectors;
  * 股票实时数据服务
  * 负责实时获取股票数据并推送到消息队列
  */
-@Slf4j
 @Service
 public class StockRealtimeService {
+
+    private static final Logger log = LoggerFactory.getLogger(StockRealtimeService.class);
 
     @Autowired
     private TushareApiClient tushareApiClient;

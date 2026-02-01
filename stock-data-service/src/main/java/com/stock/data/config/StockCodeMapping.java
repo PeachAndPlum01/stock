@@ -1,6 +1,5 @@
 package com.stock.data.config;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,17 +11,39 @@ import java.util.Map;
 /**
  * 股票代码映射配置类
  */
-@Data
 @Configuration
 @ConfigurationProperties(prefix = "stock-codes")
 public class StockCodeMapping {
 
     private List<StockMapping> mappings = new ArrayList<>();
 
-    @Data
     public static class StockMapping {
         private String company;
         private String code;
+
+        public String getCompany() {
+            return company;
+        }
+
+        public void setCompany(String company) {
+            this.company = company;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+    }
+
+    public List<StockMapping> getMappings() {
+        return mappings;
+    }
+
+    public void setMappings(List<StockMapping> mappings) {
+        this.mappings = mappings;
     }
 
     /**

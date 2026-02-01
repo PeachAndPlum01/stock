@@ -4,7 +4,31 @@ server:
 spring:
   application:
     name: stock-data-service
-  
+
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/stock_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update  # 自动更新表结构
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        use_sql_comments: true
+
   # Redis配置
   redis:
     host: localhost
@@ -33,7 +57,7 @@ spring:
 
 # Tushare API配置
 tushare:
-  token: ${TUSHARE_TOKEN:your_tushare_token_here}
+  token: ${TUSHARE_TOKEN:173a41cf058ffd3236bb3806ca9c862df202221cedd7a4a9d6bec473}
   api-url: https://api.tushare.pro
   timeout: 30
   # 实时数据更新间隔（秒）

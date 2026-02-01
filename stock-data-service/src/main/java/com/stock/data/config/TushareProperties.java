@@ -1,13 +1,11 @@
 package com.stock.data.config;
 
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * Tushare API配置类
  */
-@Data
 @Configuration
 @ConfigurationProperties(prefix = "tushare")
 public class TushareProperties {
@@ -37,4 +35,45 @@ public class TushareProperties {
      * 批量数据更新间隔（秒）
      */
     private Integer batchUpdateInterval = 60;
+
+    // Getters and Setters
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getApiUrl() {
+        return apiUrl;
+    }
+
+    public void setApiUrl(String apiUrl) {
+        this.apiUrl = apiUrl;
+    }
+
+    public Integer getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Integer timeout) {
+        this.timeout = timeout;
+    }
+
+    public Integer getRealTimeInterval() {
+        return realTimeInterval;
+    }
+
+    public void setRealTimeInterval(Integer realTimeInterval) {
+        this.realTimeInterval = realTimeInterval;
+    }
+
+    public Integer getBatchUpdateInterval() {
+        return batchUpdateInterval;
+    }
+
+    public void setBatchUpdateInterval(Integer batchUpdateInterval) {
+        this.batchUpdateInterval = batchUpdateInterval;
+    }
 }
