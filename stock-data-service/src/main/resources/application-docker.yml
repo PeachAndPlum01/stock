@@ -75,9 +75,12 @@ management:
 # 日志配置（Docker 环境）
 logging:
   level:
-    com.stock.data: INFO
-    org.springframework.amqp: WARN
-    org.hibernate: WARN
+    com.stock.data: DEBUG
+    org.springframework.amqp: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.data.jpa.repository: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:

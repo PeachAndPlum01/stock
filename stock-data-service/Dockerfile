@@ -37,4 +37,4 @@ RUN apk add --no-cache tzdata && \
 EXPOSE 8082
 
 # 启动应用
-ENTRYPOINT ["java", "-jar", "-Xms512m", "-Xmx1024m", "-Dspring.profiles.active=docker", "app.jar"]
+ENTRYPOINT ["java", "-jar", "-Xms512m", "-Xmx1024m", "-Dspring.profiles.active=docker", "-Dlogging.level.com.stock.data=DEBUG", "-Dlogging.level.org.springframework.amqp=DEBUG", "-Dlogging.level.org.hibernate.SQL=DEBUG", "app.jar"]
