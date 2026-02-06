@@ -2,6 +2,9 @@ package com.stock.correlation.controller;
 
 import com.stock.correlation.entity.RelatedProvince;
 import com.stock.correlation.service.CorrelationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/correlation")
+@Tag(name = "省份关联API", description = "省份之间股票相关度查询和分析接口")
 public class CorrelationController {
 
     @Autowired
@@ -25,7 +29,10 @@ public class CorrelationController {
      * 获取指定省份的相关省份列表
      */
     @GetMapping("/province/{province}")
-    public ResponseEntity<Map<String, Object>> getRelatedProvinces(@PathVariable String province) {
+    @Operation(summary = "获取指定省份的相关省份列表", description = "查询与指定省份股票走势相关的其他省份")
+    public ResponseEntity<Map<String, Object>> getRelatedProvinces(
+            @Parameter(description = "省份名称", required = true)
+            @PathVariable String province) {
         try {
             List<RelatedProvince> list = correlationService.getRelatedProvinces(province);
 
@@ -47,9 +54,10 @@ public class CorrelationController {
      * 获取两个省份之间的相关度
      */
     @GetMapping("/between")
+    @Operation(summary = "获取两个省份之间的相关度", description = "查询两个省份之间股票走势的相关系数")
     public ResponseEntity<Map<String, Object>> getCorrelation(
-            @RequestParam String source,
-            @RequestParam String target) {
+            @Parameter(description = "源省份", required = true) @RequestParam String source,
+            @Parameter(description = "目标省份", required = true) @RequestParam String target) {
         
         try {
             RelatedProvince correlation = correlationService.getCorrelation(source, target);
@@ -77,8 +85,9 @@ public class CorrelationController {
      * 获取相关度最高的N对省份
      */
     @GetMapping("/top")
+    @Operation(summary = "获取相关度最高的省份对", description = "返回股票走势相关度最高的省份对列表")
     public ResponseEntity<Map<String, Object>> getTopCorrelations(
-            @RequestParam(defaultValue = "10") int limit) {
+            @Parameter(description = "返回数量，默认为10") @RequestParam(defaultValue = "10") int limit) {
         
         try {
             List<RelatedProvince> list = correlationService.getTopCorrelations(limit);
@@ -101,9 +110,10 @@ public class CorrelationController {
      * 按相关度范围查询
      */
     @GetMapping("/range")
+    @Operation(summary = "按相关度范围查询", description = "查询相关度在指定范围内的省份对")
     public ResponseEntity<Map<String, Object>> getByScoreRange(
-            @RequestParam(required = false) BigDecimal minScore,
-            @RequestParam(required = false) BigDecimal maxScore) {
+            @Parameter(description = "最小相关度，可选") @RequestParam(required = false) BigDecimal minScore,
+            @Parameter(description = "最大相关度，可选") @RequestParam(required = false) BigDecimal maxScore) {
         
         try {
             List<RelatedProvince> list = correlationService.getByScoreRange(minScore, maxScore);
@@ -126,6 +136,7 @@ public class CorrelationController {
      * 获取所有省份关联数据
      */
     @GetMapping("/all")
+    @Operation(summary = "获取所有省份关联数据", description = "获取所有省份之间的股票相关度数据")
     public ResponseEntity<Map<String, Object>> getAllCorrelations() {
         try {
             List<RelatedProvince> list = correlationService.getAllCorrelations();
@@ -148,7 +159,10 @@ public class CorrelationController {
      * 按共同概念查询
      */
     @GetMapping("/concept/{concept}")
-    public ResponseEntity<Map<String, Object>> getByConcept(@PathVariable String concept) {
+    @Operation(summary = "按共同概念查询", description = "查询拥有共同概念的省份之间的相关度")
+    public ResponseEntity<Map<String, Object>> getByConcept(
+            @Parameter(description = "概念名称", required = true)
+            @PathVariable String concept) {
         try {
             List<RelatedProvince> list = correlationService.getByConcept(concept);
 
@@ -170,7 +184,10 @@ public class CorrelationController {
      * 按共同行业查询
      */
     @GetMapping("/industry/{industry}")
-    public ResponseEntity<Map<String, Object>> getByIndustry(@PathVariable String industry) {
+    @Operation(summary = "按共同行业查询", description = "查询拥有共同行业的省份之间的相关度")
+    public ResponseEntity<Map<String, Object>> getByIndustry(
+            @Parameter(description = "行业名称", required = true)
+            @PathVariable String industry) {
         try {
             List<RelatedProvince> list = correlationService.getByIndustry(industry);
 

@@ -4,15 +4,12 @@ server:
 spring:
   application:
     name: stock-data-service
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
 
-  # 数据库配置
+  # 数据库配置（Docker 环境）
   datasource:
-    url: jdbc:mysql://localhost:3306/stock_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/stock_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
@@ -24,18 +21,17 @@ spring:
   # JPA配置
   jpa:
     hibernate:
-      ddl-auto: update  # 自动更新表结构
-    show-sql: true
+      ddl-auto: update
+    show-sql: false  # Docker 环境关闭 SQL 日志
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
-        use_sql_comments: true
+        format_sql: false
 
-  # Redis配置
+  # Redis配置（Docker 环境）
   redis:
-    host: localhost
-    port: 6379
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
     database: 2
     timeout: 3000
     lettuce:
@@ -45,12 +41,12 @@ spring:
         max-idle: 8
         min-idle: 0
   
-  # RabbitMQ配置
+  # RabbitMQ配置（Docker 环境）
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
     listener:
       simple:
         acknowledge-mode: manual
@@ -63,9 +59,7 @@ tushare:
   token: ${TUSHARE_TOKEN:173a41cf058ffd3236bb3806ca9c862df202221cedd7a4a9d6bec473}
   api-url: https://api.tushare.pro
   timeout: 30
-  # 实时数据更新间隔（秒）
   real-time-interval: 10
-  # 批量更新间隔（秒）
   batch-update-interval: 60
 
 # Actuator端点配置
@@ -78,18 +72,18 @@ management:
     health:
       show-details: always
 
-# 日志配置
+# 日志配置（Docker 环境）
 logging:
   level:
-    com.stock.data: DEBUG
-    org.springframework.amqp: INFO
+    com.stock.data: INFO
+    org.springframework.amqp: WARN
+    org.hibernate: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/stock-data-service.log
+    name: /app/logs/stock-data-service.log
 
-# 股票代码映射（示例配置）
+# 股票代码映射
 stock-codes:
   mappings:
     - company: "中芯国际"
@@ -102,14 +96,3 @@ stock-codes:
       code: "09988.HK"
     - company: "宁德时代"
       code: "300750.SZ"
-
-# SpringDoc OpenAPI配置
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha

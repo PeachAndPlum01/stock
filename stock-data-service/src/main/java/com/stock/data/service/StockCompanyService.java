@@ -41,7 +41,6 @@ public class StockCompanyService {
      * 每天晚上9点刷新所有公司信息数据
      */
     @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 21 * * ?")
-    @Transactional
     public void refreshAllCompanyData() {
         log.info("开始刷新所有A股公司信息数据...");
 
@@ -78,49 +77,89 @@ public class StockCompanyService {
             int successCount = 0;
             int updateCount = 0;
             int insertCount = 0;
+            int skipCount = 0;
+            int failCount = 0;
 
             for (Map<String, Object> companyData : allCompanyData) {
+                String tsCode = null;
                 try {
-                    String tsCode = (String) companyData.get("ts_code");
-                    if (tsCode == null) {
+                    tsCode = (String) companyData.get("ts_code");
+                    if (tsCode == null || tsCode.trim().isEmpty()) {
+                        log.warn("跳过无效数据：ts_code为空");
+                        skipCount++;
                         continue;
                     }
 
-                    // 转换为StockCompany实体
+                    // 检查数据库中是否已存在
+                    Optional<StockCompany> existing = stockCompanyRepository.findByTsCode(tsCode);
+                    boolean isUpdate = existing.isPresent();
+
+                    // 转换为StockCompany实体（即使部分字段为空也要保存）
                     StockCompany company = convertToStockCompany(tsCode, companyData);
 
                     if (company == null) {
-                        log.warn("转换股票 {} 的公司信息失败", tsCode);
-                        continue;
+                        log.error("转换失败，但仍尝试保存基础数据: tsCode={}", tsCode);
+                        // 创建一个最基础的实体，至少保存ts_code
+                        company = StockCompany.builder()
+                                .tsCode(tsCode)
+                                .dataSource("tushare")
+                                .build();
                     }
 
-                    // 保存或更新到数据库
-                    Optional<StockCompany> existing = stockCompanyRepository.findByTsCode(tsCode);
-
-                    if (existing.isPresent()) {
-                        // 更新已有记录
-                        StockCompany existingCompany = existing.get();
-                        updateCompanyFields(existingCompany, company);
-                        stockCompanyRepository.save(existingCompany);
-                        updateCount++;
+                    // 保存或更新到数据库（每条记录独立事务）
+                    boolean saved = saveOrUpdateCompany(company, tsCode);
+                    
+                    // 统计
+                    if (saved) {
+                        if (isUpdate) {
+                            updateCount++;
+                        } else {
+                            insertCount++;
+                        }
+                        successCount++;
                     } else {
-                        // 新增记录
-                        stockCompanyRepository.save(company);
-                        insertCount++;
+                        failCount++;
                     }
-
-                    successCount++;
 
                 } catch (Exception e) {
-                    log.error("处理公司信息失败", e);
+                    failCount++;
+                    log.error("处理公司信息失败: tsCode={}, 错误: {}", tsCode, e.getMessage(), e);
                 }
             }
 
-            log.info("公司信息刷新完成: 获取 {}, 成功 {}, 更新 {}, 新增 {}",
-                    allCompanyData.size(), successCount, updateCount, insertCount);
+            log.info("公司信息刷新完成: 获取 {}, 成功 {}, 更新 {}, 新增 {}, 跳过 {}, 失败 {}",
+                    allCompanyData.size(), successCount, updateCount, insertCount, skipCount, failCount);
 
         } catch (Exception e) {
             log.error("刷新公司信息数据异常", e);
+        }
+    }
+
+    /**
+     * 保存或更新公司信息（独立事务）
+     * 确保每条数据都能成功保存
+     */
+    @Transactional
+    public boolean saveOrUpdateCompany(StockCompany company, String tsCode) {
+        try {
+            Optional<StockCompany> existing = stockCompanyRepository.findByTsCode(tsCode);
+            
+            if (existing.isPresent()) {
+                // 更新已有记录
+                StockCompany existingCompany = existing.get();
+                updateCompanyFields(existingCompany, company);
+                stockCompanyRepository.save(existingCompany);
+                log.debug("更新公司信息成功: tsCode={}, comName={}", tsCode, company.getComName());
+            } else {
+                // 新增记录
+                stockCompanyRepository.save(company);
+                log.debug("新增公司信息成功: tsCode={}, comName={}", tsCode, company.getComName());
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("保存公司信息失败: tsCode={}, comName={}, 错误: {}", 
+                    tsCode, company.getComName(), e.getMessage(), e);
+            return false; // 返回false表示失败，不抛出异常
         }
     }
 
@@ -129,7 +168,6 @@ public class StockCompanyService {
      *
      * @return 刷新结果
      */
-    @Transactional
     public String manualRefresh() {
         log.info("手动触发公司信息刷新...");
 
@@ -233,16 +271,26 @@ public class StockCompanyService {
 
     /**
      * 将Tushare返回的数据转换为StockCompany实体
+     * 即使部分字段转换失败，也会保存基础数据
      *
      * @param tsCode 股票代码
      * @param rawData 原始数据
-     * @return StockCompany实体
+     * @return StockCompany实体（不会返回null）
      */
     private StockCompany convertToStockCompany(String tsCode, Map<String, Object> rawData) {
         try {
+            // 调试：输出原始数据的所有字段名（仅输出第一条记录）
+            if (log.isDebugEnabled() && rawData != null) {
+                log.debug("股票 {} 的原始数据字段: {}", tsCode, rawData.keySet());
+                log.debug("股票 {} 的com_name值: {}", tsCode, rawData.get("com_name"));
+            }
+            
+            // 获取公司名称（允许为空）
+            String comName = getString(rawData, "com_name");
+
             StockCompany.StockCompanyBuilder builder = StockCompany.builder()
                     .tsCode(tsCode)
-                    .comName(getString(rawData, "com_name"))
+                    .comName(comName)
                     .chairman(getString(rawData, "chairman"))
                     .manager(getString(rawData, "manager"))
                     .secretary(getString(rawData, "secretary"))
@@ -263,8 +311,12 @@ public class StockCompanyService {
             return builder.build();
 
         } catch (Exception e) {
-            log.error("转换公司信息失败: tsCode={}", tsCode, e);
-            return null;
+            log.error("转换公司信息时发生异常: tsCode={}, 将返回基础实体", tsCode, e);
+            // 即使转换失败，也返回一个包含ts_code的基础实体
+            return StockCompany.builder()
+                    .tsCode(tsCode)
+                    .dataSource("tushare")
+                    .build();
         }
     }
 

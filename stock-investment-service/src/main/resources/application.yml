@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: stock-investment-service
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   
   # 数据源配置
   datasource:
@@ -50,3 +53,14 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/investment.log
+
+# SpringDoc OpenAPI配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha

@@ -1,37 +1,41 @@
-# 天问 - Docker Compose配置
-
 version: '3.8'
 
 services:
-  # MySQL数据库
+  # MySQL 数据库
   mysql:
     image: mysql:8.0
     container_name: stock-mysql
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: stock_investment
+      MYSQL_DATABASE: stock_db
+      MYSQL_USER: stock_user
+      MYSQL_PASSWORD: stock_pass
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./stock-data-service/src/main/resources/sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     networks:
       - stock-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis缓存
+  # Redis 缓存
   redis:
     image: redis:7-alpine
     container_name: stock-redis
+    restart: always
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    command: redis-server --appendonly yes
     networks:
       - stock-network
     healthcheck:
@@ -40,16 +44,17 @@ services:
       timeout: 3s
       retries: 5
 
-  # RabbitMQ消息队列
+  # RabbitMQ 消息队列
   rabbitmq:
-    image: rabbitmq:3.12-management-alpine
+    image: rabbitmq:3-management-alpine
     container_name: stock-rabbitmq
+    restart: always
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"   # AMQP端口
-      - "15672:15672" # 管理界面
+      - "5672:5672"   # AMQP 端口
+      - "15672:15672" # 管理界面端口
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
@@ -60,80 +65,30 @@ services:
       timeout: 5s
       retries: 5
 
-  # API网关
-  stock-gateway:
-    build:
-      context: ./stock-gateway
-      dockerfile: Dockerfile
-    container_name: stock-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_REDIS_HOST: redis
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - stock-network
-    restart: unless-stopped
-
-  # 认证服务
-  stock-auth-service:
-    build:
-      context: ./stock-auth-service
-      dockerfile: Dockerfile
-    container_name: stock-auth-service
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-      SPRING_REDIS_HOST: redis
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - stock-network
-    restart: unless-stopped
-
-  # 股票数据服务
+  # 后端服务
   stock-data-service:
     build:
       context: ./stock-data-service
       dockerfile: Dockerfile
     container_name: stock-data-service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      TUSHARE_TOKEN: 173a41cf058ffd3236bb3806ca9c862df202221cedd7a4a9d6bec473
+      TZ: Asia/Shanghai
     ports:
       - "8082:8082"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_REDIS_HOST: redis
-      SPRING_RABBITMQ_HOST: rabbitmq
-      TUSHARE_TOKEN: ${TUSHARE_TOKEN:-your_tushare_token_here}
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - stock-network
-    restart: unless-stopped
-
-  # 投资信息服务
-  stock-investment-service:
-    build:
-      context: ./stock-investment-service
-      dockerfile: Dockerfile
-    container_name: stock-investment-service
-    ports:
-      - "8083:8083"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-      SPRING_REDIS_HOST: redis
-      SPRING_RABBITMQ_HOST: rabbitmq
+    volumes:
+      - ./stock-data-service/logs:/app/logs
     depends_on:
       mysql:
         condition: service_healthy
@@ -143,28 +98,31 @@ services:
         condition: service_healthy
     networks:
       - stock-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
-  # 省份关联服务
-  stock-correlation-service:
+  # 前端服务
+  frontend:
     build:
-      context: ./stock-correlation-service
+      context: ./frontend
       dockerfile: Dockerfile
-    container_name: stock-correlation-service
+    container_name: stock-frontend
+    restart: always
     ports:
-      - "8084:8084"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-      SPRING_REDIS_HOST: redis
+      - "80:80"
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - stock-data-service
     networks:
       - stock-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   stock-network:

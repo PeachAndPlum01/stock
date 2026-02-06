@@ -12,7 +12,7 @@ USE stock_db;
 CREATE TABLE IF NOT EXISTS stock_company (
     id BIGINT AUTO_INCREMENT COMMENT '主键ID',
     ts_code VARCHAR(20) NOT NULL UNIQUE COMMENT '股票代码（如：688981.SH）',
-    com_name VARCHAR(100) NOT NULL COMMENT '公司名称',
+    com_name VARCHAR(100) COMMENT '公司名称',
     chairman VARCHAR(50) COMMENT '董事长',
     manager VARCHAR(50) COMMENT '总经理',
     secretary VARCHAR(50) COMMENT '董秘',

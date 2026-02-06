@@ -1,5 +1,5 @@
 # 多阶段构建
-FROM maven:3.8-openjdk-8-slim AS builder
+FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 WORKDIR /app
 
 # 复制父POM和服务POM
@@ -12,7 +12,7 @@ WORKDIR /app/stock-auth-service
 RUN mvn clean package -DskipTests
 
 # 运行阶段
-FROM openjdk:8-jre-slim
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # 复制jar包
