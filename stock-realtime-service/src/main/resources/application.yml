@@ -1,0 +1,95 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: stock-realtime-service
+  
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+      config:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        file-extension: yml
+  
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+# Redisson配置
+redisson:
+  config: |
+    singleServerConfig:
+      address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}"
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      connectionPoolSize: 50
+      connectionMinimumIdleSize: 10
+
+# InfluxDB配置
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:my-super-secret-auth-token}
+  org: ${INFLUXDB_ORG:stock-org}
+  bucket: ${INFLUXDB_BUCKET:stock-data}
+
+# XXL-JOB配置
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN:http://localhost:8080/xxl-job-admin}
+    executor:
+      appname: stock-realtime-executor
+      ip: 
+      port: 9999
+      logpath: /data/applogs/xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken: ${XXL_JOB_TOKEN:}
+
+# Spring Boot Admin
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Zipkin链路追踪
+spring.zipkin:
+  base-url: ${ZIPKIN_URL:http://localhost:9411}
+  sender:
+    type: web
+spring.sleuth:
+  sampler:
+    probability: 1.0
+
+# 日志配置
+logging:
+  level:
+    com.stock.realtime: INFO
+    org.springframework.web: INFO
+    org.springframework.messaging: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

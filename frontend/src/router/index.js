@@ -13,6 +13,18 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Register.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/vip-register',
+    name: 'VipRegister',
+    component: () => import('@/views/VipRegister.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/home',
     name: 'Home',
     component: () => import('@/views/Home.vue'),

@@ -1,0 +1,83 @@
+:root {
+  /* OKEx 风格深色主题变量 */
+  --bg-color: #0a0a0a; /* 极深背景 */
+  --card-bg-color: #161616; /* 卡片背景 */
+  --header-bg-color: #161616; /* 头部背景 */
+  --sidebar-bg-color: #161616; /* 侧边栏背景 */
+  
+  --text-primary: #ffffff; /* 主要文字 */
+  --text-secondary: #929aa5; /* 次要文字 */
+  --text-disabled: #5e6673; /* 禁用文字 */
+  
+  --border-color: #2c2c2c; /* 边框颜色 */
+  --divider-color: #2c2c2c; /* 分割线 */
+  
+  --primary-color: #2962ff; /* 品牌蓝 */
+  --primary-hover: #448aff;
+  
+  /* 股票涨跌颜色 (中国习惯：红涨绿跌) */
+  --up-color: #f6465d; /* 涨 - 红 */
+  --down-color: #0ecb81; /* 跌 - 绿 */
+  
+  --input-bg: #202020; /* 输入框背景 */
+  --input-border: #333333; /* 输入框边框 */
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+/* Element Plus 深色模式覆盖 */
+.el-input__wrapper {
+  background-color: var(--input-bg) !important;
+  box-shadow: 0 0 0 1px var(--input-border) inset !important;
+}
+
+.el-input__inner {
+  color: var(--text-primary) !important;
+}
+
+.el-button--primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #fff !important;
+}
+
+.el-card {
+  background-color: var(--card-bg-color) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.el-dialog, .el-message-box {
+  background-color: var(--card-bg-color) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.el-dialog__title, .el-message-box__title {
+  color: var(--text-primary) !important;
+}
+
+.el-dialog__body, .el-message-box__content {
+  color: var(--text-secondary) !important;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

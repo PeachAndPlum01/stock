@@ -1,0 +1,83 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: stock-gateway
+  config:
+    import: classpath:application-common.yml
+  
+  # Redis配置（Docker 环境）
+  redis:
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
+    database: 0
+    timeout: 3000
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+  
+  # Gateway路由配置（Docker 环境）
+  cloud:
+    gateway:
+      routes:
+        # 认证服务路由
+        - id: auth-service
+          uri: http://stock-auth-service:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+        
+        # 股票数据服务路由
+        - id: stock-data-service
+          uri: http://stock-data-service:8082
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - StripPrefix=1
+        
+        # 投资信息服务路由
+        - id: investment-service
+          uri: http://stock-investment-service:8083
+          predicates:
+            - Path=/api/investment/**
+          filters:
+            - StripPrefix=1
+        
+        # 省份关联服务路由
+        - id: correlation-service
+          uri: http://stock-correlation-service:8084
+          predicates:
+            - Path=/api/correlation/**
+          filters:
+            - StripPrefix=1
+      
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      
+      # 默认过滤器
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+
+# JWT配置
+jwt:
+  secret: stock-investment-system-jwt-secret-key-2024
+  expiration: 86400000
+
+# 日志配置（Docker 环境）
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.stock.gateway: DEBUG
+  file:
+    name: /app/logs/gateway.log

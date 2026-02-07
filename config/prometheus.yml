@@ -1,0 +1,118 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'stock-system'
+    environment: 'production'
+
+# 告警规则文件
+rule_files:
+  - '/etc/prometheus/alert-rules.yml'
+
+# 告警管理器配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# 抓取配置
+scrape_configs:
+  # Prometheus自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Spring Boot应用
+  - job_name: 'spring-boot-apps'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      # Gateway
+      - targets:
+          - 'stock-gateway-1:8080'
+          - 'stock-gateway-2:8080'
+          - 'stock-gateway-3:8080'
+        labels:
+          service: 'gateway'
+      
+      # Auth Service
+      - targets:
+          - 'stock-auth-service-1:8081'
+          - 'stock-auth-service-2:8081'
+        labels:
+          service: 'auth-service'
+      
+      # Data Service
+      - targets:
+          - 'stock-data-service-1:8082'
+          - 'stock-data-service-2:8082'
+        labels:
+          service: 'data-service'
+      
+      # Investment Service
+      - targets:
+          - 'stock-investment-service-1:8083'
+          - 'stock-investment-service-2:8083'
+        labels:
+          service: 'investment-service'
+      
+      # Correlation Service
+      - targets:
+          - 'stock-correlation-service-1:8084'
+          - 'stock-correlation-service-2:8084'
+        labels:
+          service: 'correlation-service'
+      
+      # Admin Server
+      - targets:
+          - 'stock-admin-server:8090'
+        labels:
+          service: 'admin-server'
+
+  # MySQL Exporter
+  - job_name: 'mysql'
+    static_configs:
+      - targets:
+          - 'mysql-master:3306'
+        labels:
+          instance: 'master'
+      - targets:
+          - 'mysql-slave-1:3306'
+        labels:
+          instance: 'slave-1'
+      - targets:
+          - 'mysql-slave-2:3306'
+        labels:
+          instance: 'slave-2'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-master:6379'
+        labels:
+          instance: 'master'
+      - targets:
+          - 'redis-slave-1:6379'
+        labels:
+          instance: 'slave-1'
+      - targets:
+          - 'redis-slave-2:6379'
+        labels:
+          instance: 'slave-2'
+
+  # RabbitMQ
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets:
+          - 'rabbitmq-1:15672'
+          - 'rabbitmq-2:15672'
+          - 'rabbitmq-3:15672'
+
+  # Nacos
+  - job_name: 'nacos'
+    metrics_path: '/nacos/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'nacos:8848'

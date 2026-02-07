@@ -1,13 +1,11 @@
 package com.stock.data.controller;
 
-import com.stock.data.common.Result;
-import com.stock.data.model.StockQuote;
+import com.stock.common.result.Result;
+import com.stock.data.entity.StockQuote;
 import com.stock.data.service.StockRealtimeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +19,6 @@ import java.util.List;
 @RequestMapping("/api/stock")
 @Tag(name = "股票数据API")
 public class StockDataController {
-
-    private static final Logger log = LoggerFactory.getLogger(StockDataController.class);
 
     @Autowired
     private StockRealtimeService stockRealtimeService;
@@ -38,19 +34,13 @@ public class StockDataController {
     public Result<StockQuote> getRealtimeData(
             @Parameter(description = "股票代码", required = true, example = "000001.SZ")
             @PathVariable("tsCode") String tsCode) {
-        try {
-            StockQuote stockQuote = stockRealtimeService.getRealtimeData(tsCode);
+        StockQuote stockQuote = stockRealtimeService.getRealtimeData(tsCode);
 
-            if (stockQuote == null) {
-                return Result.error("未找到股票数据");
-            }
-
-            return Result.success(stockQuote);
-
-        } catch (Exception e) {
-            log.error("获取股票实时数据失败: tsCode={}", tsCode, e);
-            return Result.error("获取数据失败: " + e.getMessage());
+        if (stockQuote == null) {
+            return Result.error("未找到股票数据");
         }
+
+        return Result.success(stockQuote);
     }
 
     /**
@@ -61,14 +51,8 @@ public class StockDataController {
     @GetMapping("/realtime/all")
     @Operation(summary = "获取所有股票的实时数据")
     public Result<List<StockQuote>> getAllRealtimeData() {
-        try {
-            List<StockQuote> stockQuotes = stockRealtimeService.getAllRealtimeData();
-            return Result.success(stockQuotes);
-
-        } catch (Exception e) {
-            log.error("获取所有股票实时数据失败", e);
-            return Result.error("获取数据失败: " + e.getMessage());
-        }
+        List<StockQuote> stockQuotes = stockRealtimeService.getAllRealtimeData();
+        return Result.success(stockQuotes);
     }
 
     /**
@@ -79,14 +63,8 @@ public class StockDataController {
     @PostMapping("/update")
     @Operation(summary = "手动触发数据更新")
     public Result<String> manualUpdate() {
-        try {
-            String result = stockRealtimeService.manualUpdate();
-            return Result.success(result);
-
-        } catch (Exception e) {
-            log.error("手动更新失败", e);
-            return Result.error("更新失败: " + e.getMessage());
-        }
+        String result = stockRealtimeService.manualUpdate();
+        return Result.success(result);
     }
 
     /**

@@ -3,6 +3,8 @@ package com.stock.investment;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
  * 天问 - 投资信息服务
@@ -11,7 +13,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @version 1.0.0
  */
 @SpringBootApplication
-@MapperScan("com.stock.investment.mapper")
+@EnableDiscoveryClient
+@EnableFeignClients
+@MapperScan("com.stock.investment.repository")
 public class InvestmentServiceApplication {
 
     public static void main(String[] args) {

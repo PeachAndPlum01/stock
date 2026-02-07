@@ -1,0 +1,26 @@
+[mysqld]
+# 服务器ID（从库，每个从库不同）
+server-id=2
+
+# 中继日志
+relay-log=relay-log
+relay-log-index=relay-log.index
+
+# 只读模式
+read_only=ON
+super_read_only=ON
+
+# GTID模式
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# 性能优化
+max_connections=1000
+innodb_buffer_pool_size=2G
+
+# 字符集
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# 从库跳过错误（谨慎使用）
+# slave_skip_errors=1062,1032

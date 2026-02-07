@@ -2,15 +2,19 @@ package com.stock.auth.controller;
 
 import com.stock.auth.entity.User;
 import com.stock.auth.service.AuthService;
+import com.stock.common.annotation.Idempotent;
+import com.stock.common.annotation.OperationLog;
+import com.stock.common.dto.LoginRequest;
+import com.stock.common.dto.RegisterRequest;
+import com.stock.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.validation.Valid;
 
 /**
  * 认证控制器
@@ -28,27 +32,12 @@ public class AuthController {
      */
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "通过用户名和密码登录系统，成功后返回JWT Token")
-    public ResponseEntity<Map<String, Object>> login(
+    @OperationLog(module = "认证模块", operation = "用户登录")
+    public Result<Map<String, Object>> login(
             @Parameter(description = "登录请求参数", required = true)
-            @RequestBody Map<String, String> request) {
-        try {
-            String username = request.get("username");
-            String password = request.get("password");
-
-            Map<String, Object> result = authService.login(username, password);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "登录成功");
-            response.put("data", result);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 400);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
+            @Valid @RequestBody LoginRequest request) {
+        Map<String, Object> result = authService.login(request.getUsername(), request.getPassword());
+        return Result.success("登录成功", result);
     }
 
     /**
@@ -56,28 +45,14 @@ public class AuthController {
      */
     @PostMapping("/register")
     @Operation(summary = "用户注册", description = "创建新用户账号，需要用户名、密码、昵称和邮箱")
-    public ResponseEntity<Map<String, Object>> register(
+    @OperationLog(module = "认证模块", operation = "用户注册")
+    @Idempotent(prefix = "register", expireTime = 10, message = "请勿重复注册")
+    public Result<Void> register(
             @Parameter(description = "注册请求参数，包含username、password、nickname、email", required = true)
-            @RequestBody Map<String, String> request) {
-        try {
-            String username = request.get("username");
-            String password = request.get("password");
-            String nickname = request.get("nickname");
-            String email = request.get("email");
-
-            authService.register(username, password, nickname, email);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "注册成功");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 400);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
+            @Valid @RequestBody RegisterRequest request) {
+        authService.register(request.getUsername(), request.getPassword(), 
+                           request.getNickname(), request.getEmail());
+        return Result.success("注册成功", null);
     }
 
     /**
@@ -85,23 +60,12 @@ public class AuthController {
      */
     @PostMapping("/logout")
     @Operation(summary = "用户登出", description = "用户退出登录，需要提供用户ID")
-    public ResponseEntity<Map<String, Object>> logout(
+    @OperationLog(module = "认证模块", operation = "用户登出")
+    public Result<Void> logout(
             @Parameter(description = "用户ID，从请求头X-User-Id获取", required = true)
             @RequestHeader("X-User-Id") Long userId) {
-        try {
-            authService.logout(userId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "登出成功");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 400);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
+        authService.logout(userId);
+        return Result.success("登出成功", null);
     }
 
     /**
@@ -109,24 +73,11 @@ public class AuthController {
      */
     @GetMapping("/userinfo")
     @Operation(summary = "获取用户信息", description = "根据用户ID获取用户的详细信息")
-    public ResponseEntity<Map<String, Object>> getUserInfo(
+    public Result<User> getUserInfo(
             @Parameter(description = "用户ID，从请求头X-User-Id获取", required = true)
             @RequestHeader("X-User-Id") Long userId) {
-        try {
-            User user = authService.getUserInfo(userId);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "获取成功");
-            response.put("data", user);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 400);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
+        User user = authService.getUserInfo(userId);
+        return Result.success(user);
     }
 
     /**
@@ -134,24 +85,11 @@ public class AuthController {
      */
     @PostMapping("/validate")
     @Operation(summary = "验证Token", description = "验证JWT Token是否有效")
-    public ResponseEntity<Map<String, Object>> validateToken(
+    public Result<Boolean> validateToken(
             @Parameter(description = "要验证的JWT Token", required = true)
             @RequestBody Map<String, String> request) {
-        try {
-            String token = request.get("token");
-            boolean valid = authService.validateToken(token);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 200);
-            response.put("message", "验证完成");
-            response.put("data", valid);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("code", 400);
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
-        }
+        String token = request.get("token");
+        boolean valid = authService.validateToken(token);
+        return Result.success(valid);
     }
 }

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: stock-auth-service
+  config:
+    import: classpath:application-common.yml
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -14,7 +16,24 @@ spring:
     url: jdbc:mysql://localhost:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
+    # HikariCP连接池配置
+    hikari:
+      minimum-idle: 10              # 最小空闲连接数
+      maximum-pool-size: 50         # 最大连接数
+      connection-timeout: 30000     # 连接超时时间（30秒）
+      idle-timeout: 600000          # 空闲连接超时时间（10分钟）
+      max-lifetime: 1800000         # 连接最大生命周期（30分钟）
+      connection-test-query: SELECT 1
+      pool-name: StockAuthHikariPool
+      auto-commit: true
+      leak-detection-threshold: 60000  # 连接泄漏检测阈值（60秒）
   
+  # 数据库初始化
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/schema.sql
+
   # Redis配置
   redis:
     host: localhost
@@ -28,52 +47,26 @@ spring:
         max-idle: 8
         min-idle: 0
 
-  # Jackson配置
-  jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
 
-# MyBatis Plus配置
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-  global-config:
-    db-config:
-      id-type: auto
+
 
 # JWT配置
 jwt:
-  secret: stock-investment-system-jwt-secret-key-2024
+  secret: ${JWT_SECRET:stock-investment-system-jwt-secret-key-2024}
   expiration: 86400000
   header: Authorization
   prefix: Bearer 
 
-# Actuator配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+security:
+  gateway-auth:
+    exclude-paths: /auth/login,/auth/register,/auth/validate,/actuator/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/doc.html
 
 # 日志配置
 logging:
   level:
-    com.stock.auth: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    root: INFO
+    com.stock.auth: INFO
+    org.springframework: WARN
+    com.baomidou.mybatisplus: WARN
   file:
     name: logs/auth.log
-
-# SpringDoc OpenAPI配置
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha

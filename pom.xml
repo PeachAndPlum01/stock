@@ -20,11 +20,14 @@
     <description>天问 - 微服务架构</description>
 
     <modules>
+        <module>stock-common</module>
         <module>stock-gateway</module>
         <module>stock-auth-service</module>
         <module>stock-data-service</module>
         <module>stock-investment-service</module>
         <module>stock-correlation-service</module>
+        <module>stock-admin-server</module>
+        <module>stock-realtime-service</module>
     </modules>
 
     <properties>
@@ -43,7 +46,41 @@
         <okhttp.version>4.12.0</okhttp.version>
         <lombok.version>1.18.34</lombok.version>
         <mysql.version>8.0.33</mysql.version>
+        <knife4j.version>3.0.3</knife4j.version>
+        
+        <!-- 新增组件版本 -->
+        <spring-boot-admin.version>2.7.15</spring-boot-admin.version>
+        <seata.version>1.7.1</seata.version>
+        <zipkin.version>2.24.3</zipkin.version>
+        <jasypt.version>3.0.5</jasypt.version>
+        
+        <!-- 实时推送与任务调度 -->
+        <xxl-job.version>2.4.0</xxl-job.version>
+        
+        <!-- 时序数据库 -->
+        <influxdb.version>6.10.0</influxdb.version>
+        
+        <!-- 技术分析库 -->
+        <ta4j.version>0.15</ta4j.version>
+        
+        <!-- 缓存优化 -->
+        <caffeine.version>3.1.8</caffeine.version>
+        <redisson.version>3.24.3</redisson.version>
+        
+        <!-- 数据同步 -->
+        <canal.version>1.1.7</canal.version>
+        
+        <!-- 搜索引擎 -->
+        <elasticsearch.version>7.17.15</elasticsearch.version>
     </properties>
+
+    <dependencies>
+        <!-- Spring Cloud Bootstrap -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -116,18 +153,96 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
+
+            <!-- Spring Boot Admin Server -->
+            <dependency>
+                <groupId>de.codecentric</groupId>
+                <artifactId>spring-boot-admin-starter-server</artifactId>
+                <version>${spring-boot-admin.version}</version>
+            </dependency>
+
+            <!-- Spring Boot Admin Client -->
+            <dependency>
+                <groupId>de.codecentric</groupId>
+                <artifactId>spring-boot-admin-starter-client</artifactId>
+                <version>${spring-boot-admin.version}</version>
+            </dependency>
+
+            <!-- Seata -->
+            <dependency>
+                <groupId>io.seata</groupId>
+                <artifactId>seata-spring-boot-starter</artifactId>
+                <version>${seata.version}</version>
+            </dependency>
+
+            <!-- Jasypt 配置加密 -->
+            <dependency>
+                <groupId>com.github.ulisesbocchio</groupId>
+                <artifactId>jasypt-spring-boot-starter</artifactId>
+                <version>${jasypt.version}</version>
+            </dependency>
+
+            <!-- XXL-JOB 分布式任务调度 -->
+            <dependency>
+                <groupId>com.xuxueli</groupId>
+                <artifactId>xxl-job-core</artifactId>
+                <version>${xxl-job.version}</version>
+            </dependency>
+
+            <!-- InfluxDB 时序数据库 -->
+            <dependency>
+                <groupId>com.influxdb</groupId>
+                <artifactId>influxdb-client-java</artifactId>
+                <version>${influxdb.version}</version>
+            </dependency>
+
+            <!-- TA4J 技术分析库 -->
+            <dependency>
+                <groupId>org.ta4j</groupId>
+                <artifactId>ta4j-core</artifactId>
+                <version>${ta4j.version}</version>
+            </dependency>
+
+            <!-- Caffeine 本地缓存 -->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+
+            <!-- Redisson Redis高级特性 -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+
+            <!-- Canal 数据同步 -->
+            <dependency>
+                <groupId>com.alibaba.otter</groupId>
+                <artifactId>canal.client</artifactId>
+                <version>${canal.version}</version>
+            </dependency>
+
+            <!-- Elasticsearch -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
-        <pluginManagement>
+            <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
+                    <version>3.8.1</version>
                     <configuration>
-                        <release>17</release>
+                        <source>17</source>
+                        <target>17</target>
                         <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>

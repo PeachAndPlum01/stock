@@ -1,0 +1,27 @@
+[mysqld]
+# 服务器ID（主库）
+server-id=1
+
+# 开启二进制日志
+log-bin=mysql-bin
+binlog-format=ROW
+expire_logs_days=7
+
+# GTID模式
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# 性能优化
+max_connections=1000
+innodb_buffer_pool_size=2G
+innodb_log_file_size=256M
+innodb_flush_log_at_trx_commit=2
+
+# 字符集
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# 慢查询日志
+slow_query_log=ON
+long_query_time=2
+log_queries_not_using_indexes=ON

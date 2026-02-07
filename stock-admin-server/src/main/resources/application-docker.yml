@@ -1,0 +1,48 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: stock-admin-server
+  
+  # Spring Boot Admin 配置
+  boot:
+    admin:
+      ui:
+        title: 股票投资系统监控中心
+        brand: <img src="assets/img/icon-spring-boot-admin.svg"><span>天问监控</span>
+      
+  # Nacos 服务发现
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        
+  # Security 配置
+  security:
+    user:
+      name: admin
+      password: admin123
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.stock: DEBUG
+  file:
+    name: logs/admin-server.log
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n'

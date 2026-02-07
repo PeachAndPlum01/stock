@@ -1,0 +1,86 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: stock-auth-service
+  config:
+    import: classpath:application-common.yml
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  
+  # 数据源配置（Docker 环境）
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # Redis配置（Docker 环境）
+  redis:
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
+    database: 1
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+  # Zipkin链路追踪配置（Docker环境）
+  zipkin:
+    base-url: http://zipkin:9411
+    sender:
+      type: web
+  sleuth:
+    sampler:
+      probability: 1.0
+
+  # Spring Boot Admin Client配置（Docker环境）
+  boot:
+    admin:
+      client:
+        url: http://stock-admin-server:8090
+        instance:
+          prefer-ip: true
+          service-base-url: http://stock-auth-service:8081
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+# JWT配置
+jwt:
+  secret: stock-investment-system-jwt-secret-key-2024
+  expiration: 86400000
+  header: Authorization
+  prefix: Bearer 
+
+security:
+  gateway-auth:
+    exclude-paths: /auth/login,/auth/register,/auth/validate,/actuator/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/doc.html
+
+# 日志配置（Docker 环境）
+logging:
+  level:
+    com.stock.auth: DEBUG
+  file:
+    name: /app/logs/auth.log

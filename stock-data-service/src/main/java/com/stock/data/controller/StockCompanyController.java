@@ -1,7 +1,7 @@
 package com.stock.data.controller;
 
-import com.stock.data.common.Result;
-import com.stock.data.model.StockCompany;
+import com.stock.common.result.Result;
+import com.stock.data.entity.StockCompany;
 import com.stock.data.service.StockCompanyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

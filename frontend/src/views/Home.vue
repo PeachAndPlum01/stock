@@ -426,7 +426,10 @@ const resetMapState = () => {
         realtime: false,
         calculable: true,
         inRange: {
-          color: ['#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695']
+          color: ['#1e2329', '#2a3039', '#36404a', '#42505c', '#4e606e'] // 深色系蓝灰渐变
+        },
+        textStyle: {
+          color: '#929aa5'
         },
         left: 'left',
         bottom: '20px'
@@ -435,8 +438,8 @@ const resetMapState = () => {
         data: mapData.value.map(item => ({
           ...item,
           itemStyle: {
-            areaColor: '#e0f3f8',
-            borderColor: '#fff',
+            areaColor: '#1e2329',
+            borderColor: '#2c3036',
             borderWidth: 1
           }
         }))
@@ -504,6 +507,11 @@ const initMap = () => {
     const option = {
       tooltip: {
         trigger: 'item',
+        backgroundColor: 'rgba(22, 22, 22, 0.9)',
+        borderColor: '#2c2c2c',
+        textStyle: {
+          color: '#fff'
+        },
         formatter: (params) => {
           if (params.data && params.data.amount !== undefined) {
             return `${params.name}<br/>股票数量：${params.data.value} 只<br/>平均涨幅：${params.data.amount.toFixed(2)}%`
@@ -518,7 +526,10 @@ const initMap = () => {
         realtime: false,
         calculable: true,
         inRange: {
-          color: ['#fff7f5', '#fde0d9', '#fcbba1', '#fc9272', '#f46643']
+          color: ['#1e2329', '#3a2f2f', '#563b3b', '#724747', '#8e5353'] // 深色系红灰渐变
+        },
+        textStyle: {
+          color: '#929aa5'
         },
         left: 'left',
         bottom: '20px'
@@ -551,7 +562,7 @@ const initMap = () => {
                 return 10; // 大区域使用正常字体
               }
             },
-            color: '#333',
+            color: '#929aa5', // 次要文字颜色
             fontWeight: 'normal',
             formatter: (params) => {
               // 直接使用省份简称显示在地图上
@@ -584,10 +595,10 @@ const initMap = () => {
               }
             },
             itemStyle: {
-              areaColor: '#ffd700',
-              borderColor: '#d0d0d0',
-              borderWidth: 2,
-              shadowBlur: 20,
+              areaColor: '#2962ff', // 选中/高亮色改为品牌蓝
+              borderColor: '#fff',
+              borderWidth: 1,
+              shadowBlur: 10,
               shadowColor: 'rgba(0, 0, 0, 0.5)'
             }
           },
@@ -616,14 +627,14 @@ const initMap = () => {
               }
             },
             itemStyle: {
-              areaColor: '#ff6b6b',
-              borderColor: '#d0d0d0',
-              borderWidth: 2
+              areaColor: '#f6465d', // 选中色改为红色（上涨色）
+              borderColor: '#fff',
+              borderWidth: 1
             }
           },
           itemStyle: {
-            areaColor: '#e0f3f8',
-            borderColor: '#d0d0d0',
+            areaColor: '#1e2329', // 默认深色背景
+            borderColor: '#2c3036', // 默认深色边框
             borderWidth: 1
           },
           data: mapData.value || []
@@ -826,9 +837,9 @@ const handleProvinceClick = async (provinceName) => {
           min: 0,
           max: 100,
           pieces: [
-            { value: 100, label: '选中省份', color: '#ff6b6b' },
-            { value: 50, label: '关联省份', color: '#ffd700' },
-            { value: 1, label: '其他省份', color: '#e0f3f8' }
+            { value: 100, label: '选中省份', color: '#f6465d' }, // 红色
+            { value: 50, label: '关联省份', color: '#e0a700' }, // 暗金色
+            { value: 1, label: '其他省份', color: '#1e2329' } // 深色背景
           ]
         },
         series: [{
@@ -859,8 +870,8 @@ const handleProvinceClick = async (provinceName) => {
           min: 0,
           max: 100,
           pieces: [
-            { value: 100, label: '选中省份', color: '#ff6b6b' },
-            { value: 1, label: '其他省份', color: '#e0f3f8' }
+            { value: 100, label: '选中省份', color: '#f6465d' },
+            { value: 1, label: '其他省份', color: '#1e2329' }
           ]
         },
         series: [{
@@ -1016,23 +1027,24 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--bg-color);
 }
 
 .header {
   height: 60px;
-  background: #007AFF;
+  background: var(--header-bg-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 30px;
-  border-bottom: 2px solid #0066cc;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .header-left h1 {
   font-size: 22px;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
+  font-weight: 600;
 }
 
 .header-right {
@@ -1042,7 +1054,7 @@ onUnmounted(() => {
 }
 
 .username {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
@@ -1056,8 +1068,8 @@ onUnmounted(() => {
 /* 左侧导航栏样式 */
 .sidebar {
   width: 240px;
-  background: #fff;
-  border-right: 2px solid #e5e5e5;
+  background: var(--sidebar-bg-color);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1071,8 +1083,8 @@ onUnmounted(() => {
 
 .sidebar-header {
   padding: 20px;
-  border-bottom: 2px solid #f0f0f0;
-  background: #f5f7fa;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--sidebar-bg-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1082,7 +1094,7 @@ onUnmounted(() => {
 .sidebar-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 600;
   transition: opacity 0.3s ease;
 }
@@ -1093,15 +1105,16 @@ onUnmounted(() => {
 }
 
 .collapse-btn {
-  background: #007AFF;
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .collapse-btn:hover {
-  background: #0051D5;
-  transform: scale(1.1);
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
 }
 
 .sidebar-collapsed .collapse-btn {
@@ -1113,6 +1126,7 @@ onUnmounted(() => {
   border: none;
   padding: 10px 0;
   transition: all 0.3s ease;
+  background-color: var(--sidebar-bg-color) !important;
 }
 
 .sidebar-menu .el-menu-item {
@@ -1123,6 +1137,7 @@ onUnmounted(() => {
   transition: all 0.3s ease;
   white-space: nowrap;
   overflow: hidden;
+  color: var(--text-secondary) !important;
 }
 
 .sidebar-collapsed .sidebar-menu .el-menu-item {
@@ -1131,13 +1146,13 @@ onUnmounted(() => {
 }
 
 .sidebar-menu .el-menu-item:hover {
-  background-color: #e6f7ff;
-  color: #007AFF;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
 }
 
 .sidebar-menu .el-menu-item.is-active {
-  background-color: #007AFF;
-  color: #fff;
+  background-color: rgba(41, 98, 255, 0.1) !important;
+  color: var(--primary-color) !important;
   font-weight: 500;
 }
 
@@ -1169,26 +1184,26 @@ onUnmounted(() => {
   padding: 20px;
   gap: 20px;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--bg-color);
   transition: all 0.3s ease;
 }
 
 .map-section {
   flex: 1;
-  background: #fff;
+  background: var(--card-bg-color);
   border-radius: 4px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  border: 2px solid #e5e5e5;
+  border: 1px solid var(--border-color);
 }
 
 /* 右侧信息面板 */
 .info-section {
   width: 400px;
-  background: #f5f7fa;
-  border-left: 1px solid #e5e5e5;
+  background: var(--bg-color);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1197,10 +1212,10 @@ onUnmounted(() => {
 .section-title {
   font-size: 18px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #e5e5e5;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .china-map {
@@ -1221,17 +1236,17 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 16px;
-  background: #f8f9fa;
+  background: var(--card-bg-color);
   border-radius: 8px;
-  border: 2px dashed #ddd;
+  border: 1px dashed var(--border-color);
 }
 
 .loading-icon {
   font-size: 32px;
   margin-bottom: 16px;
-  color: #007AFF;
+  color: var(--primary-color);
   animation: spin 1s linear infinite;
 }
 
@@ -1254,7 +1269,7 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 16px;
   height: 100%;
 }
@@ -1262,16 +1277,16 @@ onUnmounted(() => {
 .placeholder-icon {
   font-size: 48px;
   margin-bottom: 16px;
-  color: #007AFF;
+  color: var(--primary-color);
 }
 
 /* 信息区块样式 */
 .info-block {
-  background: #fff;
+  background: var(--card-bg-color);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  border: 1px solid #e8e8e8;
+  box-shadow: none;
+  border: 1px solid var(--border-color);
 }
 
 .block-header {
@@ -1279,19 +1294,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e8e8e8;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .block-header .el-icon {
   font-size: 18px;
-  color: #007AFF;
+  color: var(--primary-color);
 }
 
 .block-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -1306,11 +1321,14 @@ onUnmounted(() => {
 
 .province-tag {
   margin: 4px 8px 4px 0;
+  background-color: rgba(41, 98, 255, 0.1);
+  border-color: rgba(41, 98, 255, 0.2);
+  color: var(--primary-color);
 }
 
 /* 空状态文本样式 */
 .empty-text {
-  color: #999;
+  color: var(--text-disabled);
   font-size: 14px;
   font-style: italic;
 }
@@ -1326,17 +1344,16 @@ onUnmounted(() => {
 
 /* 关联原因说明样式 */
 .reason-item {
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 6px;
   margin-bottom: 8px;
   overflow: hidden;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
   transition: all 0.2s ease;
 }
 
 .reason-item:hover {
-  border-color: #007AFF;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+  border-color: var(--primary-color);
 }
 
 .reason-item:last-child {
@@ -1354,11 +1371,11 @@ onUnmounted(() => {
 }
 
 .reason-header:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .reason-province {
-  color: #007AFF;
+  color: var(--primary-color);
   font-weight: 600;
   font-size: 14px;
   min-width: 40px;
@@ -1367,13 +1384,13 @@ onUnmounted(() => {
 .reason-summary {
   flex: 1;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .expand-icon {
   font-size: 14px;
-  color: #999;
+  color: var(--text-disabled);
   transition: transform 0.3s ease;
 }
 
@@ -1382,8 +1399,8 @@ onUnmounted(() => {
 }
 
 .reason-projects {
-  background: #ffffff;
-  border-top: 1px solid #e5e5e5;
+  background: var(--card-bg-color);
+  border-top: 1px solid var(--border-color);
 }
 
 .projects-list {
@@ -1393,7 +1410,7 @@ onUnmounted(() => {
 
 .project-item {
   padding: 12px 14px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   transition: background-color 0.2s ease;
 }
 
@@ -1402,13 +1419,13 @@ onUnmounted(() => {
 }
 
 .project-item:hover {
-  background-color: #fafafa;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .project-name {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -1420,15 +1437,15 @@ onUnmounted(() => {
 }
 
 .project-industry {
-  color: #666;
+  color: var(--text-secondary);
   padding: 2px 8px;
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 3px;
   font-size: 12px;
 }
 
 .project-amount {
-  color: #ff6b35;
+  color: var(--up-color);
   font-weight: 500;
 }
 
@@ -1452,18 +1469,17 @@ onUnmounted(() => {
 }
 
 .stock-item {
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   padding: 14px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-color);
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .stock-item:hover {
-  border-color: #007AFF;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
-  background: #fff;
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .stock-main {
@@ -1476,7 +1492,7 @@ onUnmounted(() => {
 .stock-name {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stock-detail {
@@ -1488,37 +1504,37 @@ onUnmounted(() => {
 }
 
 .stock-price {
-  color: #ff6b35;
+  color: var(--up-color);
   font-weight: 600;
   font-size: 16px;
 }
 
 .stock-industry {
-  color: #999;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .stock-more {
   padding-top: 10px;
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid var(--border-color);
 }
 
 .stock-more p {
   margin: 6px 0;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .stock-more p strong {
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .stock-more .description {
   margin: -2px 0 6px 0;
   padding-top: 8px;
-  border-top: 1px dashed #e8e8e8;
+  border-top: 1px dashed var(--border-color);
 }
 
 /* 滚动条样式 */
@@ -1527,12 +1543,12 @@ onUnmounted(() => {
 }
 
 .investment-list::-webkit-scrollbar-thumb {
-  background: #ddd;
+  background: #333;
   border-radius: 3px;
 }
 
 .investment-list::-webkit-scrollbar-thumb:hover {
-  background: #bbb;
+  background: #555;
 }
 
 /* 响应式设计 */
@@ -1675,13 +1691,13 @@ onUnmounted(() => {
 .star-section {
   width: 100%;
   height: 100%;
-  background: #fff;
+  background: var(--card-bg-color);
   border-radius: 4px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 2px solid #e5e5e5;
+  border: 1px solid var(--border-color);
 }
 
 /* 功能入口网格布局 */
@@ -1695,7 +1711,7 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-/* 功能卡片样式 - 平面化设计 */
+/* 功能卡片样式 - 深色平面化设计 */
 .star-feature-card {
   display: flex;
   flex-direction: column;
@@ -1705,28 +1721,28 @@ onUnmounted(() => {
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 2px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   box-shadow: none;
   min-height: 180px;
-  background: #f5f7fa;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .star-feature-card:hover {
   transform: translateY(-4px);
-  border-color: #007AFF;
-  background: #e8f0fe;
+  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .star-feature-card h3 {
   margin: 10px 0 8px;
   font-size: 20px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .star-feature-card p {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
   text-align: center;
@@ -1734,133 +1750,39 @@ onUnmounted(() => {
   transition: color 0.2s ease;
 }
 
-/* 不同颜色的功能卡片 - 平面化设计 */
-.star-feature-card.feature-blue {
-  background: #e8f4fd;
-  border-color: #d1e8fc;
-  color: #333;
-}
+/* 不同颜色的功能卡片 - 深色模式下统一风格，仅用边框或微弱背景区分，或者保持统一 */
+/* 为了保持 OKEx 的简洁风格，这里统一使用深色背景，通过 hover 效果区分 */
 
 .star-feature-card.feature-blue:hover {
-  background: #d1e8fc;
-  border-color: #007AFF;
-}
-
-.star-feature-card.feature-blue h3,
-.star-feature-card.feature-blue p {
-  color: #333;
-}
-
-.star-feature-card.feature-green {
-  background: #e8f5e9;
-  border-color: #d4edda;
-  color: #333;
+  border-color: #2962ff;
 }
 
 .star-feature-card.feature-green:hover {
-  background: #d4edda;
-  border-color: #28a745;
-}
-
-.star-feature-card.feature-green h3,
-.star-feature-card.feature-green p {
-  color: #333;
-}
-
-.star-feature-card.feature-purple {
-  background: #f3e5f5;
-  border-color: #e1d4f5;
-  color: #333;
+  border-color: #0ecb81;
 }
 
 .star-feature-card.feature-purple:hover {
-  background: #e1d4f5;
   border-color: #9c27b0;
 }
 
-.star-feature-card.feature-purple h3,
-.star-feature-card.feature-purple p {
-  color: #333;
-}
-
-.star-feature-card.feature-orange {
-  background: #fff3e0;
-  border-color: #ffe0b2;
-  color: #333;
-}
-
 .star-feature-card.feature-orange:hover {
-  background: #ffe0b2;
   border-color: #ff9800;
 }
 
-.star-feature-card.feature-orange h3,
-.star-feature-card.feature-orange p {
-  color: #333;
-}
-
-.star-feature-card.feature-cyan {
-  background: #e0f7fa;
-  border-color: #b2ebf2;
-  color: #333;
-}
-
 .star-feature-card.feature-cyan:hover {
-  background: #b2ebf2;
   border-color: #00bcd4;
 }
 
-.star-feature-card.feature-cyan h3,
-.star-feature-card.feature-cyan p {
-  color: #333;
-}
-
-.star-feature-card.feature-red {
-  background: #ffebee;
-  border-color: #ffcdd2;
-  color: #333;
-}
-
 .star-feature-card.feature-red:hover {
-  background: #ffcdd2;
-  border-color: #f44336;
-}
-
-.star-feature-card.feature-red h3,
-.star-feature-card.feature-red p {
-  color: #333;
-}
-
-.star-feature-card.feature-indigo {
-  background: #e8eaf6;
-  border-color: #c5cae9;
-  color: #333;
+  border-color: #f6465d;
 }
 
 .star-feature-card.feature-indigo:hover {
-  background: #c5cae9;
   border-color: #3f51b5;
 }
 
-.star-feature-card.feature-indigo h3,
-.star-feature-card.feature-indigo p {
-  color: #333;
-}
-
-.star-feature-card.feature-teal {
-  background: #e0f2f1;
-  border-color: #b2dfdb;
-  color: #333;
-}
-
 .star-feature-card.feature-teal:hover {
-  background: #b2dfdb;
   border-color: #009688;
-}
-
-.star-feature-card.feature-teal h3,
-.star-feature-card.feature-teal p {
-  color: #333;
 }
 
 /* 功能内容展示区 */
@@ -1876,16 +1798,16 @@ onUnmounted(() => {
   align-items: center;
   gap: 20px;
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--card-bg-color);
   border-radius: 4px;
   margin-bottom: 20px;
-  border: 2px solid #e5e5e5;
+  border: 1px solid var(--border-color);
 }
 
 .feature-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -1894,9 +1816,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--card-bg-color);
   border-radius: 4px;
   padding: 40px;
-  border: 2px solid #e5e5e5;
+  border: 1px solid var(--border-color);
 }
 </style>

@@ -1,16 +1,22 @@
 package com.stock.data.service;
 
-import com.stock.data.client.TushareApiClient;
-import com.stock.data.config.StockCodeMapping;
-import com.stock.data.config.TushareProperties;
-import com.stock.data.model.StockQuote;
-import com.stock.data.rabbitmq.StockDataProducer;
+import com.stock.data.integration.TushareApiClient;
+import com.stock.data.integration.messaging.StockDataProducer;
+import com.stock.data.properties.StockCodeMapping;
+import com.stock.data.properties.TushareProperties;
+import com.stock.data.entity.StockQuote;
+
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,15 +51,71 @@ public class StockRealtimeService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Autowired
+    private RedissonClient redissonClient;
+
+    private RBloomFilter<String> stockCodeFilter;
+
     private static final String CACHE_PREFIX = "stock:realtime:";
     private static final String CACHE_KEY_ALL = CACHE_PREFIX + "all";
 
     /**
+     * 初始化布隆过滤器
+     */
+    @PostConstruct
+    public void initBloomFilter() {
+        try {
+            stockCodeFilter = redissonClient.getBloomFilter("stock:code:filter");
+            
+            // 初始化布隆过滤器（预期元素数量10000，误判率0.01）
+            if (!stockCodeFilter.isExists()) {
+                stockCodeFilter.tryInit(10000, 0.01);
+                log.info("布隆过滤器初始化成功");
+            }
+            
+            // 将所有股票代码添加到布隆过滤器
+            Map<String, String> codeToCompanyMap = stockCodeMapping.getCodeToCompanyMap();
+            for (String tsCode : codeToCompanyMap.keySet()) {
+                stockCodeFilter.add(tsCode);
+            }
+            
+            log.info("股票代码已加载到布隆过滤器，总数: {}", codeToCompanyMap.size());
+        } catch (Exception e) {
+            log.error("初始化布隆过滤器失败", e);
+        }
+    }
+
+    /**
      * 实时获取所有配置股票的最新数据
      * 定时执行（每10秒）
+     * 使用分布式锁防止集群环境下重复执行
      */
     @Scheduled(fixedRate = 10000)
     public void fetchAllRealtimeData() {
+        RLock lock = redissonClient.getLock("lock:scheduled:fetchRealtimeData");
+        
+        try {
+            // 尝试获取锁，最多等待0秒，锁定10秒
+            if (!lock.tryLock(0, 10, TimeUnit.SECONDS)) {
+                log.debug("其他节点正在执行定时任务，跳过");
+                return;
+            }
+            
+            doFetchAllRealtimeData();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取分布式锁被中断", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * 执行实时数据获取的具体逻辑
+     */
+    private void doFetchAllRealtimeData() {
         if (!isTradingTime()) {
             log.debug("当前非交易时间，跳过实时数据获取");
             return;
@@ -115,9 +177,34 @@ public class StockRealtimeService {
     /**
      * 批量更新股票数据（每60秒）
      * 用于更新较长周期的数据，如涨跌幅等
+     * 使用分布式锁防止集群环境下重复执行
      */
     @Scheduled(fixedRate = 60000)
     public void batchUpdateStockData() {
+        RLock lock = redissonClient.getLock("lock:scheduled:batchUpdateStockData");
+        
+        try {
+            // 尝试获取锁，最多等待0秒，锁定60秒
+            if (!lock.tryLock(0, 60, TimeUnit.SECONDS)) {
+                log.debug("其他节点正在执行批量更新任务，跳过");
+                return;
+            }
+            
+            doBatchUpdateStockData();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取分布式锁被中断", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * 执行批量更新的具体逻辑
+     */
+    private void doBatchUpdateStockData() {
         if (!isTradingTime()) {
             return;
         }
@@ -166,8 +253,8 @@ public class StockRealtimeService {
         log.info("手动触发股票数据更新...");
         
         try {
-            fetchAllRealtimeData();
-            batchUpdateStockData();
+            doFetchAllRealtimeData();
+            doBatchUpdateStockData();
             
             return "手动更新完成";
         } catch (Exception e) {
@@ -178,12 +265,19 @@ public class StockRealtimeService {
 
     /**
      * 获取单只股票的实时数据
+     * 使用布隆过滤器防止缓存穿透，使用分布式锁防止缓存击穿
      * 
      * @param tsCode 股票代码
      * @return 股票行情数据
      */
     public StockQuote getRealtimeData(String tsCode) {
-        // 先从缓存获取
+        // 1. 先检查布隆过滤器，防止缓存穿透
+        if (stockCodeFilter != null && !stockCodeFilter.contains(tsCode)) {
+            log.warn("股票代码不存在: {}", tsCode);
+            return null;
+        }
+        
+        // 2. 从缓存获取
         String cacheKey = CACHE_PREFIX + tsCode;
         Object cached = redisTemplate.opsForValue().get(cacheKey);
         
@@ -191,13 +285,38 @@ public class StockRealtimeService {
             return (StockQuote) cached;
         }
 
-        // 缓存未命中，从API获取
-        Map<String, Object> quote = tushareApiClient.getLatestQuote(tsCode);
-        if (quote != null) {
-            StockQuote stockQuote = convertToStockQuote(tsCode, quote);
-            if (stockQuote != null) {
-                cacheStockQuote(stockQuote);
-                return stockQuote;
+        // 3. 缓存未命中，使用分布式锁防止缓存击穿
+        RLock lock = redissonClient.getLock("lock:stock:" + tsCode);
+        
+        try {
+            // 尝试获取锁，最多等待3秒，锁定10秒
+            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                // 双重检查
+                cached = redisTemplate.opsForValue().get(cacheKey);
+                if (cached instanceof StockQuote) {
+                    return (StockQuote) cached;
+                }
+                
+                // 从API获取数据
+                Map<String, Object> quote = tushareApiClient.getLatestQuote(tsCode);
+                if (quote != null) {
+                    StockQuote stockQuote = convertToStockQuote(tsCode, quote);
+                    if (stockQuote != null) {
+                        // 添加随机过期时间（3600±300秒），防止缓存雪崩
+                        long expireTime = 3600 + (long) (Math.random() * 600);
+                        redisTemplate.opsForValue().set(cacheKey, stockQuote, expireTime, TimeUnit.SECONDS);
+                        return stockQuote;
+                    }
+                }
+            } else {
+                log.warn("获取锁超时: {}", tsCode);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取分布式锁被中断", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
         }
 
@@ -270,11 +389,13 @@ public class StockRealtimeService {
     }
 
     /**
-     * 缓存单只股票数据
+     * 缓存单只股票数据（添加随机过期时间防止雪崩）
      */
     private void cacheStockQuote(StockQuote stockQuote) {
         String cacheKey = CACHE_PREFIX + stockQuote.getTsCode();
-        redisTemplate.opsForValue().set(cacheKey, stockQuote, 1, TimeUnit.HOURS);
+        // 添加随机过期时间（3600±300秒），防止缓存雪崩
+        long expireTime = 3600 + (long) (Math.random() * 600);
+        redisTemplate.opsForValue().set(cacheKey, stockQuote, expireTime, TimeUnit.SECONDS);
     }
 
     /**

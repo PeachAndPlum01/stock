@@ -1,0 +1,182 @@
+groups:
+  - name: stock_system_alerts
+    interval: 30s
+    rules:
+      # ==================== 服务健康告警 ====================
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务宕机: {{ $labels.job }}"
+          description: "{{ $labels.instance }} 服务已宕机超过1分钟"
+
+      - alert: ServiceHighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务错误率过高: {{ $labels.service }}"
+          description: "{{ $labels.instance }} 错误率超过10%"
+
+      # ==================== 性能告警 ====================
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "响应时间过长: {{ $labels.service }}"
+          description: "{{ $labels.instance }} P95响应时间超过3秒"
+
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高: {{ $labels.service }}"
+          description: "{{ $labels.instance }} CPU使用率超过80%"
+
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用率过高: {{ $labels.service }}"
+          description: "{{ $labels.instance }} 堆内存使用率超过90%"
+
+      # ==================== JVM告警 ====================
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GC时间过长: {{ $labels.service }}"
+          description: "{{ $labels.instance }} GC时间占比超过10%"
+
+      - alert: TooManyThreads
+        expr: jvm_threads_live > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "线程数过多: {{ $labels.service }}"
+          description: "{{ $labels.instance }} 线程数超过500"
+
+      # ==================== 数据库告警 ====================
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL宕机: {{ $labels.instance }}"
+          description: "MySQL {{ $labels.instance }} 已宕机"
+
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL慢查询过多: {{ $labels.instance }}"
+          description: "MySQL {{ $labels.instance }} 慢查询超过10个/秒"
+
+      - alert: MySQLConnectionsHigh
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL连接数过高: {{ $labels.instance }}"
+          description: "MySQL {{ $labels.instance }} 连接数使用率超过80%"
+
+      - alert: MySQLReplicationLag
+        expr: mysql_slave_status_seconds_behind_master > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL主从延迟: {{ $labels.instance }}"
+          description: "MySQL {{ $labels.instance }} 主从延迟超过30秒"
+
+      # ==================== Redis告警 ====================
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis宕机: {{ $labels.instance }}"
+          description: "Redis {{ $labels.instance }} 已宕机"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis内存使用率过高: {{ $labels.instance }}"
+          description: "Redis {{ $labels.instance }} 内存使用率超过90%"
+
+      - alert: RedisRejectedConnections
+        expr: rate(redis_rejected_connections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis拒绝连接: {{ $labels.instance }}"
+          description: "Redis {{ $labels.instance }} 正在拒绝新连接"
+
+      # ==================== RabbitMQ告警 ====================
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ宕机: {{ $labels.instance }}"
+          description: "RabbitMQ {{ $labels.instance }} 已宕机"
+
+      - alert: RabbitMQQueueMessagesHigh
+        expr: rabbitmq_queue_messages > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ队列积压: {{ $labels.queue }}"
+          description: "队列 {{ $labels.queue }} 消息积压超过1000条"
+
+      - alert: RabbitMQNoConsumers
+        expr: rabbitmq_queue_consumers == 0 and rabbitmq_queue_messages > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ队列无消费者: {{ $labels.queue }}"
+          description: "队列 {{ $labels.queue }} 有消息但没有消费者"
+
+      # ==================== 磁盘告警 ====================
+      - alert: DiskSpaceHigh
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间不足: {{ $labels.instance }}"
+          description: "{{ $labels.instance }} 磁盘可用空间低于10%"
+
+      # ==================== 网络告警 ====================
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "网络流量过高: {{ $labels.instance }}"
+          description: "{{ $labels.instance }} 网络接收流量超过100MB/s"

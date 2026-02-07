@@ -1,22 +1,21 @@
-# 多阶段构建
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+# 单阶段构建 - 使用服务器本地Maven编译的jar包
+FROM eclipse-temurin:17-jre
+
 WORKDIR /app
 
-# 复制父POM和服务POM
-COPY pom.xml ./
-COPY stock-auth-service/pom.xml ./stock-auth-service/
-COPY stock-auth-service/src ./stock-auth-service/src
+# 安装 curl 和 tzdata
+RUN apt-get update && apt-get install -y curl tzdata && rm -rf /var/lib/apt/lists/*
 
-# 构建
-WORKDIR /app/stock-auth-service
-RUN mvn clean package -DskipTests
+# 从本地复制 jar 文件（需要在服务器上先使用Maven编译）
+COPY target/*.jar app.jar
 
-# 运行阶段
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
+# 创建日志目录
+RUN mkdir -p /app/logs
 
-# 复制jar包
-COPY --from=builder /app/stock-auth-service/target/*.jar app.jar
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
 
 # 暴露端口
 EXPOSE 8081
@@ -26,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8081/actuator/health || exit 1
 
 # 启动应用
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-default}", "app.jar"]
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-docker}", "app.jar"]

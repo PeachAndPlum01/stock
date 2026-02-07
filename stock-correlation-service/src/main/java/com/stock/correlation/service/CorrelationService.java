@@ -2,7 +2,7 @@ package com.stock.correlation.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.stock.correlation.entity.RelatedProvince;
-import com.stock.correlation.mapper.RelatedProvinceMapper;
+import com.stock.correlation.repository.RelatedProvinceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

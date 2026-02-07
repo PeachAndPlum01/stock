@@ -1,8 +1,8 @@
 package com.stock.data.service;
 
-import com.stock.data.client.TushareApiClient;
-import com.stock.data.config.StockCodeMapping;
-import com.stock.data.model.StockCompany;
+import com.stock.data.integration.TushareApiClient;
+import com.stock.data.properties.StockCodeMapping;
+import com.stock.data.entity.StockCompany;
 import com.stock.data.repository.StockCompanyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -3,6 +3,9 @@ package com.stock.auth;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * 天问 - 认证服务
@@ -11,7 +14,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @version 1.0.0
  */
 @SpringBootApplication
-@MapperScan("com.stock.auth.mapper")
+@EnableDiscoveryClient
+@EnableFeignClients
+@MapperScan("com.stock.auth.repository")
+@ComponentScan("com.stock")
 public class AuthServiceApplication {
 
     public static void main(String[] args) {

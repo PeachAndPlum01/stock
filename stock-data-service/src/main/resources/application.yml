@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: stock-data-service
+  config:
+    import: classpath:application-common.yml
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -58,6 +60,24 @@ spring:
     publisher-returns: true
     publisher-confirm-type: correlated
 
+  # Zipkin链路追踪配置
+  zipkin:
+    base-url: http://localhost:9411
+    sender:
+      type: web
+  sleuth:
+    sampler:
+      probability: 1.0
+
+  # Spring Boot Admin Client配置
+  boot:
+    admin:
+      client:
+        url: http://localhost:8090
+        instance:
+          prefer-ip: true
+          service-base-url: http://localhost:8082
+
 # Tushare API配置
 tushare:
   token: ${TUSHARE_TOKEN:173a41cf058ffd3236bb3806ca9c862df202221cedd7a4a9d6bec473}
@@ -68,23 +88,12 @@ tushare:
   # 批量更新间隔（秒）
   batch-update-interval: 60
 
-# Actuator端点配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-
 # 日志配置
 logging:
   level:
     com.stock.data: DEBUG
     org.springframework.amqp: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/stock-data-service.log
@@ -102,14 +111,3 @@ stock-codes:
       code: "09988.HK"
     - company: "宁德时代"
       code: "300750.SZ"
-
-# SpringDoc OpenAPI配置
-springdoc:
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: true
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha

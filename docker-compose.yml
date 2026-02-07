@@ -8,12 +8,12 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: stock_db
+      MYSQL_DATABASE: stock_investment
       MYSQL_USER: stock_user
       MYSQL_PASSWORD: stock_pass
       TZ: Asia/Shanghai
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./stock-data-service/src/main/resources/sql:/docker-entrypoint-initdb.d
@@ -65,7 +65,182 @@ services:
       timeout: 5s
       retries: 5
 
-  # 后端服务
+  # Nacos 服务注册与配置中心
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    platform: linux/amd64
+    container_name: stock-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: root
+      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      TZ: Asia/Shanghai
+    ports:
+      - "8848:8848"   # HTTP端口
+      - "9848:9848"   # gRPC端口
+      - "9849:9849"   # gRPC端口
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # Zipkin 链路追踪服务
+  zipkin:
+    image: openzipkin/zipkin:2.24
+    container_name: stock-zipkin
+    restart: always
+    environment:
+      STORAGE_TYPE: mem
+      TZ: Asia/Shanghai
+    ports:
+      - "9411:9411"
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # InfluxDB 时序数据库
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: stock-influxdb
+    restart: always
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin123456
+      DOCKER_INFLUXDB_INIT_ORG: stock-org
+      DOCKER_INFLUXDB_INIT_BUCKET: stock-data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
+      TZ: Asia/Shanghai
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Admin 监控服务
+  stock-admin-server:
+    build:
+      context: ./stock-admin-server
+      dockerfile: Dockerfile
+    container_name: stock-admin-server
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./logs/admin-server:/app/logs
+    depends_on:
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # API网关服务
+  stock-gateway:
+    build:
+      context: ./stock-gateway
+      dockerfile: Dockerfile
+    container_name: stock-gateway
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs/gateway:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 认证服务
+  stock-auth-service:
+    build:
+      context: ./stock-auth-service
+      dockerfile: Dockerfile
+    container_name: stock-auth-service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./logs/auth-service:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 数据服务
   stock-data-service:
     build:
       context: ./stock-data-service
@@ -74,7 +249,7 @@ services:
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_REDIS_HOST: redis
@@ -83,12 +258,13 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
+      NACOS_SERVER_ADDR: nacos:8848
       TUSHARE_TOKEN: 173a41cf058ffd3236bb3806ca9c862df202221cedd7a4a9d6bec473
       TZ: Asia/Shanghai
     ports:
       - "8082:8082"
     volumes:
-      - ./stock-data-service/logs:/app/logs
+      - ./logs/data-service:/app/logs
     depends_on:
       mysql:
         condition: service_healthy
@@ -96,10 +272,120 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      nacos:
+        condition: service_healthy
     networks:
       - stock-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 投资信息服务
+  stock-investment-service:
+    build:
+      context: ./stock-investment-service
+      dockerfile: Dockerfile
+    container_name: stock-investment-service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./logs/investment-service:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 关联服务
+  stock-correlation-service:
+    build:
+      context: ./stock-correlation-service
+      dockerfile: Dockerfile
+    container_name: stock-correlation-service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./logs/correlation-service:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 实时行情服务
+  stock-realtime-service:
+    build:
+      context: ./stock-realtime-service
+      dockerfile: Dockerfile
+    container_name: stock-realtime-service
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: my-super-secret-auth-token
+      INFLUXDB_ORG: stock-org
+      INFLUXDB_BUCKET: stock-data
+      NACOS_ADDR: nacos:8848
+      ZIPKIN_URL: http://zipkin:9411
+      TZ: Asia/Shanghai
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./logs/realtime-service:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -115,7 +401,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - stock-data-service
+      - stock-gateway
     networks:
       - stock-network
     healthcheck:
@@ -130,5 +416,44 @@ networks:
 
 volumes:
   mysql-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/mysql
   redis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/redis
   rabbitmq-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/rabbitmq
+  nacos-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/nacos/data
+  nacos-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/nacos/logs
+  influxdb-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/influxdb/data
+  influxdb-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/influxdb/config

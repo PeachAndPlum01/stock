@@ -26,8 +26,53 @@ export const logout = () => {
  */
 export const getUserInfo = () => {
   return request({
-    url: '/auth/userInfo',
+    url: '/auth/userinfo',
     method: 'get'
+  })
+}
+
+/**
+ * 用户注册
+ */
+export const register = (data) => {
+  return request({
+    url: '/auth/register',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * VIP注册
+ */
+export const registerVip = (data) => {
+  return request({
+    url: '/auth/vip/register',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 发送验证码
+ * type: 'phone' | 'email'
+ */
+export const sendCaptcha = (data) => {
+  return request({
+    url: '/auth/captcha',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 手机验证码登录
+ */
+export const loginByPhone = (data) => {
+  return request({
+    url: '/auth/login/phone',
+    method: 'post',
+    data
   })
 }
 

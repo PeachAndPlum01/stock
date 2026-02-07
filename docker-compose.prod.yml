@@ -1,0 +1,1002 @@
+version: '3.8'
+
+services:
+  # ==================== MySQL 主从架构 ====================
+  mysql-master:
+    image: mysql:8.0
+    container_name: stock-mysql-master
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-master-data:/var/lib/mysql
+      - ./scripts/mysql-master.cnf:/etc/mysql/conf.d/master.cnf
+      - ./stock-data-service/src/main/resources/sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-slave-1:
+    image: mysql:8.0
+    container_name: stock-mysql-slave-1
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-slave-1-data:/var/lib/mysql
+      - ./scripts/mysql-slave.cnf:/etc/mysql/conf.d/slave.cnf
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-slave-2:
+    image: mysql:8.0
+    container_name: stock-mysql-slave-2
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-slave-2-data:/var/lib/mysql
+      - ./scripts/mysql-slave.cnf:/etc/mysql/conf.d/slave.cnf
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Redis Sentinel 高可用架构 ====================
+  redis-master:
+    image: redis:7-alpine
+    container_name: stock-redis-master
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --masterauth ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-master-data:/data
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-slave-1:
+    image: redis:7-alpine
+    container_name: stock-redis-slave-1
+    restart: always
+    command: redis-server --appendonly yes --slaveof redis-master 6379 --requirepass ${REDIS_PASSWORD} --masterauth ${REDIS_PASSWORD}
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-slave-1-data:/data
+    depends_on:
+      - redis-master
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-slave-2:
+    image: redis:7-alpine
+    container_name: stock-redis-slave-2
+    restart: always
+    command: redis-server --appendonly yes --slaveof redis-master 6379 --requirepass ${REDIS_PASSWORD} --masterauth ${REDIS_PASSWORD}
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis-slave-2-data:/data
+    depends_on:
+      - redis-master
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis-sentinel-1:
+    image: redis:7-alpine
+    container_name: stock-redis-sentinel-1
+    restart: always
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./scripts/redis-sentinel.conf:/etc/redis/sentinel.conf
+      - redis-sentinel-1-data:/data
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+    networks:
+      - stock-network
+
+  redis-sentinel-2:
+    image: redis:7-alpine
+    container_name: stock-redis-sentinel-2
+    restart: always
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26380:26379"
+    volumes:
+      - ./scripts/redis-sentinel.conf:/etc/redis/sentinel.conf
+      - redis-sentinel-2-data:/data
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+    networks:
+      - stock-network
+
+  redis-sentinel-3:
+    image: redis:7-alpine
+    container_name: stock-redis-sentinel-3
+    restart: always
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26381:26379"
+    volumes:
+      - ./scripts/redis-sentinel.conf:/etc/redis/sentinel.conf
+      - redis-sentinel-3-data:/data
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+    networks:
+      - stock-network
+
+  # ==================== RabbitMQ 集群 ====================
+  rabbitmq-1:
+    image: rabbitmq:3-management-alpine
+    container_name: stock-rabbitmq-1
+    restart: always
+    hostname: rabbitmq-1
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-stock-rabbitmq-cluster-secret}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-1-data:/var/lib/rabbitmq
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq-2:
+    image: rabbitmq:3-management-alpine
+    container_name: stock-rabbitmq-2
+    restart: always
+    hostname: rabbitmq-2
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-stock-rabbitmq-cluster-secret}
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq-2-data:/var/lib/rabbitmq
+      - ./scripts/rabbitmq-join-cluster.sh:/usr/local/bin/join-cluster.sh
+    depends_on:
+      rabbitmq-1:
+        condition: service_healthy
+    networks:
+      - stock-network
+    entrypoint: /bin/bash -c "chmod +x /usr/local/bin/join-cluster.sh && /usr/local/bin/join-cluster.sh rabbitmq-1"
+
+  rabbitmq-3:
+    image: rabbitmq:3-management-alpine
+    container_name: stock-rabbitmq-3
+    restart: always
+    hostname: rabbitmq-3
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-stock-rabbitmq-cluster-secret}
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+    volumes:
+      - rabbitmq-3-data:/var/lib/rabbitmq
+      - ./scripts/rabbitmq-join-cluster.sh:/usr/local/bin/join-cluster.sh
+    depends_on:
+      rabbitmq-1:
+        condition: service_healthy
+    networks:
+      - stock-network
+    entrypoint: /bin/bash -c "chmod +x /usr/local/bin/join-cluster.sh && /usr/local/bin/join-cluster.sh rabbitmq-1"
+
+  # ==================== Nacos 集群 ====================
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: stock-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql-master
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_SERVICE_DB_PARAM: characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true
+      JVM_XMS: 512m
+      JVM_XMX: 512m
+      TZ: Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ==================== Zipkin (MySQL存储) ====================
+  zipkin:
+    image: openzipkin/zipkin:2.24
+    container_name: stock-zipkin
+    restart: always
+    environment:
+      STORAGE_TYPE: mysql
+      MYSQL_HOST: mysql-master
+      MYSQL_TCP_PORT: 3306
+      MYSQL_DB: zipkin
+      MYSQL_USER: root
+      MYSQL_PASS: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "9411:9411"
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== 监控组件 ====================
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: stock-prometheus
+    restart: always
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/alert-rules.yml:/etc/prometheus/alert-rules.yml
+      - prometheus-data:/prometheus
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: stock-grafana
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana-dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # AlertManager
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: stock-alertmanager
+    restart: always
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ==================== ELK 日志系统 ====================
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: stock-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: stock-logstash
+    restart: always
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    volumes:
+      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - /var/log/stock:/var/log/stock:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - stock-network
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: stock-kibana
+    restart: always
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== Spring Boot Admin ====================
+  stock-admin-server:
+    build:
+      context: ./stock-admin-server
+      dockerfile: Dockerfile
+    container_name: stock-admin-server
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8090:8090"
+    volumes:
+      - /var/log/stock/admin-server:/app/logs
+    depends_on:
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ==================== 业务服务（多实例） ====================
+  # API网关（3实例）
+  stock-gateway-1:
+    build:
+      context: ./stock-gateway
+      dockerfile: Dockerfile
+    container_name: stock-gateway-1
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/log/stock/gateway-1:/app/logs
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-gateway-2:
+    build:
+      context: ./stock-gateway
+      dockerfile: Dockerfile
+    container_name: stock-gateway-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8180:8080"
+    volumes:
+      - /var/log/stock/gateway-2:/app/logs
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-gateway-3:
+    build:
+      context: ./stock-gateway
+      dockerfile: Dockerfile
+    container_name: stock-gateway-3
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      TZ: Asia/Shanghai
+    ports:
+      - "8280:8080"
+    volumes:
+      - /var/log/stock/gateway-3:/app/logs
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 认证服务（2实例）
+  stock-auth-service-1:
+    build:
+      context: ./stock-auth-service
+      dockerfile: Dockerfile
+    container_name: stock-auth-service-1
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_AUTH_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_AUTH_PASSWORD}
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JWT_SECRET: ${JWT_SECRET}
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8081:8081"
+    volumes:
+      - /var/log/stock/auth-service-1:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-auth-service-2:
+    build:
+      context: ./stock-auth-service
+      dockerfile: Dockerfile
+    container_name: stock-auth-service-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_AUTH_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_AUTH_PASSWORD}
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JWT_SECRET: ${JWT_SECRET}
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8181:8081"
+    volumes:
+      - /var/log/stock/auth-service-2:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 数据服务（2实例）
+  stock-data-service-1:
+    build:
+      context: ./stock-data-service
+      dockerfile: Dockerfile
+    container_name: stock-data-service-1
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_DATA_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_DATA_PASSWORD}
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq-1
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN}
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8082:8082"
+    volumes:
+      - /var/log/stock/data-service-1:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-data-service-2:
+    build:
+      context: ./stock-data-service
+      dockerfile: Dockerfile
+    container_name: stock-data-service-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_DATA_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_DATA_PASSWORD}
+      SPRING_REDIS_HOST: redis-master
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq-1
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN}
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8182:8082"
+    volumes:
+      - /var/log/stock/data-service-2:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      redis-master:
+        condition: service_healthy
+      rabbitmq-1:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 投资服务（2实例）
+  stock-investment-service-1:
+    build:
+      context: ./stock-investment-service
+      dockerfile: Dockerfile
+    container_name: stock-investment-service-1
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_INVESTMENT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_INVESTMENT_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8083:8083"
+    volumes:
+      - /var/log/stock/investment-service-1:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-investment-service-2:
+    build:
+      context: ./stock-investment-service
+      dockerfile: Dockerfile
+    container_name: stock-investment-service-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-master:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_INVESTMENT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_INVESTMENT_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8183:8083"
+    volumes:
+      - /var/log/stock/investment-service-2:/app/logs
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 关联服务（2实例）
+  stock-correlation-service-1:
+    build:
+      context: ./stock-correlation-service
+      dockerfile: Dockerfile
+    container_name: stock-correlation-service-1
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-slave-1:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_CORRELATION_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_CORRELATION_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8084:8084"
+    volumes:
+      - /var/log/stock/correlation-service-1:/app/logs
+    depends_on:
+      mysql-slave-1:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  stock-correlation-service-2:
+    build:
+      context: ./stock-correlation-service
+      dockerfile: Dockerfile
+    container_name: stock-correlation-service-2
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-slave-2:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_CORRELATION_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_CORRELATION_PASSWORD}
+      NACOS_SERVER_ADDR: nacos:8848
+      JASYPT_ENCRYPTOR_PASSWORD: ${JASYPT_ENCRYPTOR_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "8184:8084"
+    volumes:
+      - /var/log/stock/correlation-service-2:/app/logs
+    depends_on:
+      mysql-slave-2:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    networks:
+      - stock-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ==================== Nginx 负载均衡 + HTTPS ====================
+  nginx:
+    image: nginx:alpine
+    container_name: stock-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/ssl:/etc/nginx/ssl
+      - ./frontend/dist:/usr/share/nginx/html
+    depends_on:
+      - stock-gateway-1
+      - stock-gateway-2
+      - stock-gateway-3
+    networks:
+      - stock-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  stock-network:
+    driver: bridge
+
+volumes:
+  # MySQL
+  mysql-master-data:
+  mysql-slave-1-data:
+  mysql-slave-2-data:
+  
+  # Redis
+  redis-master-data:
+  redis-slave-1-data:
+  redis-slave-2-data:
+  redis-sentinel-1-data:
+  redis-sentinel-2-data:
+  redis-sentinel-3-data:
+  
+  # RabbitMQ
+  rabbitmq-1-data:
+  rabbitmq-2-data:
+  rabbitmq-3-data:
+  
+  # Nacos
+  nacos-data:
+  nacos-logs:
+  
+  # 监控
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  
+  # ELK
+  elasticsearch-data:
