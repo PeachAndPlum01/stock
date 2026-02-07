@@ -38,9 +38,24 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
   const token = userStore.token
+
+  // 如果已登录，验证token是否有效
+  if (token && to.path !== '/login') {
+    try {
+      // 这里可以添加一个验证token的API调用
+      // 如果token无效，清除用户信息并跳转到登录页
+      // 目前简化处理：直接放行
+      next()
+      return
+    } catch (error) {
+      userStore.clearUser()
+      next('/login')
+      return
+    }
+  }
 
   if (to.meta.requiresAuth && !token) {
     // 需要登录但未登录，跳转到登录页

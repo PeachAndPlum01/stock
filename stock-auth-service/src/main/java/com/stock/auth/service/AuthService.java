@@ -79,6 +79,7 @@ public class AuthService {
             result.put("userId", user.getId());
             result.put("username", user.getUsername());
             result.put("nickname", user.getNickname());
+            result.put("vip", user.getVip());
 
             return result;
         } catch (BusinessException e) {
@@ -110,6 +111,7 @@ public class AuthService {
         user.setNickname(nickname);
         user.setEmail(email);
         user.setStatus(1);
+        user.setVip(0);  // 默认为普通用户
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
 
@@ -120,8 +122,15 @@ public class AuthService {
      * 用户登出
      */
     public void logout(Long userId) {
-        String redisKey = TOKEN_PREFIX + userId;
-        redisTemplate.delete(redisKey);
+        try {
+            String redisKey = TOKEN_PREFIX + userId;
+            redisTemplate.delete(redisKey);
+        } catch (Exception e) {
+            System.err.println("Redis连接失败: " + e.getMessage());
+            e.printStackTrace();
+            // 即使Redis失败，也允许登出，只是无法立即清理Token
+            // Token会在24小时后自动过期
+        }
     }
 
     /**

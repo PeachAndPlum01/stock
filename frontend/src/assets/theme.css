@@ -1,83 +1,165 @@
 :root {
-  /* OKEx 风格深色主题变量 */
-  --bg-color: #0a0a0a; /* 极深背景 */
-  --card-bg-color: #161616; /* 卡片背景 */
-  --header-bg-color: #161616; /* 头部背景 */
-  --sidebar-bg-color: #161616; /* 侧边栏背景 */
+  /* OKX 风格主题变量 */
+  --bg-color: #0B0E11; /* OKX 深邃背景 */
+  --card-bg-color: #15181C; /* OKX 面板背景 */
+  --header-bg-color: rgba(24, 26, 32, 0.8); /* 头部背景 */
+  --sidebar-bg-color: #15181C; /* 侧边栏背景 */
   
-  --text-primary: #ffffff; /* 主要文字 */
-  --text-secondary: #929aa5; /* 次要文字 */
-  --text-disabled: #5e6673; /* 禁用文字 */
+  --text-primary: #EAECEF; /* 主要文字 */
+  --text-secondary: #848E9C; /* 次要文字 */
+  --text-disabled: #5E6673; /* 禁用文字 */
   
-  --border-color: #2c2c2c; /* 边框颜色 */
-  --divider-color: #2c2c2c; /* 分割线 */
+  --border-color: rgba(255, 255, 255, 0.08); /* 边框 */
+  --divider-color: rgba(255, 255, 255, 0.08); /* 分割线 */
   
-  --primary-color: #2962ff; /* 品牌蓝 */
-  --primary-hover: #448aff;
+  --primary-color: #2962FF; /* OKX 品牌蓝 */
+  --primary-hover: #1E4BD8;
   
-  /* 股票涨跌颜色 (中国习惯：红涨绿跌) */
-  --up-color: #f6465d; /* 涨 - 红 */
-  --down-color: #0ecb81; /* 跌 - 绿 */
+  --secondary-color: #C6CACE; /* 辅助色 */
+  --accent-color: #2962FF; /* 强调色 */
   
-  --input-bg: #202020; /* 输入框背景 */
-  --input-border: #333333; /* 输入框边框 */
+  /* 涨跌颜色 (加密货币习惯: 绿涨红跌) */
+  --up-color: #0ECB81; 
+  --down-color: #F6465D;
+  
+  --input-bg: rgba(255, 255, 255, 0.04); /* 输入框背景 */
+  --input-border: transparent; /* 输入框边框 */
+  
+  /* 光效 */
+  --glow-primary: rgba(41, 98, 255, 0.4);
+  --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-primary);
+  /* 统一使用 Home 界面的背景风格 (在组件中通过 .grid-background 实现，这里保留基础背景) */
+  background-image: radial-gradient(circle at top center, #1F2329 0%, #0B0E11 40%);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-family: 'DINPro', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Element Plus 深色模式覆盖 */
+/* Element Plus 深色模式覆盖 - Linear 风格 */
 .el-input__wrapper {
   background-color: var(--input-bg) !important;
   box-shadow: 0 0 0 1px var(--input-border) inset !important;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+}
+
+.el-input__wrapper:hover, .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--text-secondary) inset !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .el-input__inner {
   color: var(--text-primary) !important;
+  font-family: inherit !important;
 }
 
 .el-button--primary {
   background-color: var(--primary-color) !important;
-  border-color: var(--primary-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: #fff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.el-button--primary:hover {
+  background-color: var(--primary-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
+}
+
+.el-button--danger {
+  background-color: rgba(242, 93, 93, 0.1) !important;
+  border: 1px solid rgba(242, 93, 93, 0.3) !important;
+  color: var(--up-color) !important;
+  box-shadow: none !important;
+}
+
+.el-button--danger:hover {
+  background-color: rgba(242, 93, 93, 0.2) !important;
+  border-color: var(--up-color) !important;
 }
 
 .el-card {
   background-color: var(--card-bg-color) !important;
-  border-color: var(--border-color) !important;
+  border: 1px solid var(--border-color) !important;
   color: var(--text-primary) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-card) !important;
+  border-radius: 12px !important;
 }
 
 .el-dialog, .el-message-box {
-  background-color: var(--card-bg-color) !important;
+  background-color: #141414 !important;
   border: 1px solid var(--border-color) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+  border-radius: 12px !important;
 }
 
 .el-dialog__title, .el-message-box__title {
   color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .el-dialog__body, .el-message-box__content {
   color: var(--text-secondary) !important;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 极简 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 标签样式覆盖 */
+.el-tag {
+  border-width: 1px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.el-tag--primary {
+  color: #8da4ef;
+  border-color: rgba(94, 106, 210, 0.3);
+  background-color: rgba(94, 106, 210, 0.1);
+}
+
+.el-tag--success {
+  color: var(--down-color);
+  border-color: rgba(76, 195, 138, 0.2);
+  background-color: rgba(76, 195, 138, 0.1);
+}
+
+.el-tag--danger {
+  color: var(--up-color);
+  border-color: rgba(242, 93, 93, 0.2);
+  background-color: rgba(242, 93, 93, 0.1);
+}
+
+.el-tag--info {
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  background-color: rgba(255, 255, 255, 0.05);
 }

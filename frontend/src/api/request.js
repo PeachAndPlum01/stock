@@ -16,6 +16,10 @@ request.interceptors.request.use(
     if (userStore.token) {
       config.headers['Authorization'] = `Bearer ${userStore.token}`
     }
+    // 添加X-User-Id请求头，后端登出接口需要这个字段
+    if (userStore.userInfo && userStore.userInfo.userId) {
+      config.headers['X-User-Id'] = userStore.userInfo.userId
+    }
     return config
   },
   error => {

@@ -187,7 +187,7 @@ services:
       NACOS_SERVER_ADDR: nacos:8848
       TZ: Asia/Shanghai
     ports:
-      - "8080:8080"
+      - "8888:8080"
     volumes:
       - ./logs/gateway:/app/logs
     depends_on:

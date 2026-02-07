@@ -59,7 +59,7 @@ mybatis-plus:
 security:
   gateway-auth:
     enabled: true
-    exclude-paths: /actuator/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/doc.html
+    exclude-paths: /auth/**,/actuator/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/doc.html
 
 logging:
   pattern:

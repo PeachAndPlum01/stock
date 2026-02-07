@@ -38,6 +38,8 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = {}
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
+    // 清除所有 localStorage 数据，确保彻底清理
+    localStorage.clear()
   }
 
   return {

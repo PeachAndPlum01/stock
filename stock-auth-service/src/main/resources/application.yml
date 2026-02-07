@@ -10,10 +10,29 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
   
+  # Nacos服务发现配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        enabled: true
+        # 服务实例元数据
+        metadata:
+          version: 1.0.0
+          env: dev
+      config:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yml
+        enabled: true
+  
   # 数据源配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3307/stock_investment?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
     # HikariCP连接池配置
@@ -31,7 +50,7 @@ spring:
   # 数据库初始化
   sql:
     init:
-      mode: always
+      mode: never
       schema-locations: classpath:sql/schema.sql
 
   # Redis配置
@@ -47,9 +66,6 @@ spring:
         max-idle: 8
         min-idle: 0
 
-
-
-
 # JWT配置
 jwt:
   secret: ${JWT_SECRET:stock-investment-system-jwt-secret-key-2024}
@@ -57,8 +73,10 @@ jwt:
   header: Authorization
   prefix: Bearer 
 
+# 禁用认证服务的网关认证（因为认证服务本身就是处理登录的服务）
 security:
   gateway-auth:
+    enabled: true
     exclude-paths: /auth/login,/auth/register,/auth/validate,/actuator/**,/v3/api-docs/**,/swagger-ui/**,/swagger-ui.html,/doc.html
 
 # 日志配置
@@ -66,7 +84,8 @@ logging:
   level:
     root: INFO
     com.stock.auth: INFO
+    com.stock.auth.mapper: DEBUG
     org.springframework: WARN
-    com.baomidou.mybatisplus: WARN
+    com.baomidou.mybatisplus: DEBUG
   file:
     name: logs/auth.log

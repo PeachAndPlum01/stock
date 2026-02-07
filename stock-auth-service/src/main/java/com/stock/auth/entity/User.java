@@ -54,6 +54,11 @@ public class User implements Serializable {
     private Integer status;
 
     /**
+     * 是否为VIP（0-普通用户，1-VIP用户）
+     */
+    private Integer vip;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

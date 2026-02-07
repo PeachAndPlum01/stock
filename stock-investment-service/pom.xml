@@ -148,6 +148,16 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- 本模块的资源文件 -->
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <!-- 引入 stock-common 的资源文件 -->
+            <resource>
+                <directory>../stock-common/src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
