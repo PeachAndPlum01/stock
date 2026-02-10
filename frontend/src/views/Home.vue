@@ -9,10 +9,10 @@
         </div>
         <div class="header-divider"></div>
         <nav class="main-nav">
+          <a href="#" class="nav-link" :class="{ active: currentView === 'market-view' }" @click.prevent="handleMenuSelect('market-view')">市场 <span class="badge-new">New</span></a>
           <a href="#" class="nav-link" :class="{ active: currentView === 'region-analysis' }" @click.prevent="handleMenuSelect('region-analysis')">地区透视</a>
           <a href="#" class="nav-link" :class="{ active: currentView === 'star-view' }" @click.prevent="handleMenuSelect('star-view')">观星台</a>
           <a href="#" class="nav-link" :class="{ active: currentView === 'discussion' }" @click.prevent="handleMenuSelect('discussion')">股吧</a>
-          <a href="#" class="nav-link disabled">市场 <span class="badge-new">New</span></a>
           <a href="#" class="nav-link disabled">金融</a>
           <a href="#" class="nav-link disabled">Web3</a>
         </nav>
@@ -108,6 +108,9 @@
       
       <!-- 股吧视图 -->
       <StockBar v-if="currentView === 'discussion'" />
+
+      <!-- 市场视图 -->
+      <MarketView v-else-if="currentView === 'market-view'" />
 
       <!-- 观星台视图 -->
       <StarObservatory v-else-if="currentView === 'star-view'" />
@@ -313,6 +316,7 @@ import { useUserStore } from '@/store/user'
 import chinaJson from '@/assets/china.json'
 import StockBar from '@/components/StockBar.vue'
 import StarObservatory from '@/components/StarObservatory.vue'
+import MarketView from '@/components/MarketView.vue'
 
 // 验证地图数据是否正确加载
 if (!chinaJson || !chinaJson.features) {
@@ -328,8 +332,8 @@ let chartInstance = null
 const selectedProvince = ref('')
 const investmentList = ref([])
 const mapData = ref([])
-const activeMenu = ref('region-analysis')
-const currentView = ref('region-analysis')
+const activeMenu = ref('market-view')
+const currentView = ref('market-view')
 
 // 颜色辅助函数
 const getChangeClass = (val) => {

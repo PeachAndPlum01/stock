@@ -116,13 +116,18 @@ const initChart = (data) => {
           name: node.name,
           stockCode: node.symbol, // 存储股票代码供 tooltip 使用
           value: node.value,
-          symbolSize: node.category === 0 ? 60 : 40,
+          symbolSize: node.category === 0 ? 70 : 45,
           itemStyle: {
-            color: node.category === 0 ? '#2962FF' : '#0ECB81'
+            // 扁平化：使用纯色，移除径向渐变和阴影
+            color: node.category === 0 ? '#2962FF' : '#00C853',
+            borderColor: '#0B0E11',
+            borderWidth: 2
           },
           label: {
             show: true,
-            color: '#fff'
+            color: '#EAECEF',
+            fontSize: node.category === 0 ? 14 : 12,
+            fontWeight: node.category === 0 ? '600' : 'normal'
           }
         })),
         links: data.links.map(link => {
@@ -134,28 +139,40 @@ const initChart = (data) => {
             target: targetName,
             relation: link.relation,
             lineStyle: {
-              width: 2,
-              curveness: 0.2,
-              color: '#EAECEF' // 使用更亮的颜色
+              width: 1,
+              curveness: 0,
+              color: '#474D57',
+              opacity: 0.4
             }
           }
         }),
         roam: true,
+        zoom: 0.7, // 初始缩放比例，避免节点太大占满屏幕
         label: {
-          position: 'right'
+          position: 'right',
+          distance: 8
         },
         force: {
-          repulsion: 500,
-          edgeLength: 150
+          repulsion: 2000,
+          edgeLength: [150, 300],
+          gravity: 0.1
         },
+        edgeSymbol: ['none', 'arrow'],
+        edgeSymbolSize: [4, 8],
         lineStyle: {
-          color: '#EAECEF',
-          opacity: 0.8
+          color: '#474D57',
+          opacity: 0.4,
+          curveness: 0
         },
         emphasis: {
           focus: 'adjacency',
           lineStyle: {
-            width: 4
+            width: 2,
+            opacity: 1
+          },
+          itemStyle: {
+            borderColor: '#fff',
+            borderWidth: 2
           }
         }
       }
@@ -257,30 +274,31 @@ onUnmounted(() => {
   flex: 3;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #2B3139;
+  border-right: 1px solid #1E2329;
 }
 
 .analysis-panel {
   flex: 2;
   display: flex;
   flex-direction: column;
-  background: #15181C;
+  background: #0B0E11;
   min-width: 350px;
 }
 
 .star-panel-header {
-  height: 60px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid #2B3139;
-  background: #15181C;
+  padding: 0 20px;
+  border-bottom: 1px solid #1E2329;
+  background: #0B0E11;
 }
 
 .star-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
+  color: #EAECEF;
 }
 
 .star-legend {
@@ -293,13 +311,13 @@ onUnmounted(() => {
 .dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 2px;
   display: inline-block;
   margin-right: 6px;
 }
 
 .dot.core { background: #2962FF; }
-.dot.related { background: #0ECB81; }
+.dot.related { background: #00C853; }
 
 .chart-container {
   flex: 1;
@@ -314,12 +332,12 @@ onUnmounted(() => {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .message {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   max-width: 90%;
 }
 
@@ -329,55 +347,53 @@ onUnmounted(() => {
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #2B3139;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #1E2329;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   flex-shrink: 0;
-  border: 1px solid #474D57;
+  color: #848E9C;
+  border: none;
 }
 
 .user-message .avatar {
   background: #2962FF;
   color: #fff;
-  border: none;
 }
 
 .content {
-  background: #2B3139;
-  padding: 12px 16px;
-  border-radius: 12px;
+  background: #1E2329;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 14px;
   line-height: 1.6;
   color: #EAECEF;
-  border-top-left-radius: 2px;
 }
 
 .user-message .content {
   background: #2962FF;
   color: #fff;
-  border-radius: 12px;
-  border-top-right-radius: 2px;
+  border-radius: 8px;
 }
 
 .input-area {
-  padding: 20px;
-  border-top: 1px solid #2B3139;
+  padding: 16px;
+  border-top: 1px solid #1E2329;
   display: flex;
-  gap: 12px;
-  background: #15181C;
+  gap: 10px;
+  background: #0B0E11;
 }
 
 input {
   flex: 1;
-  background: #0B0E11;
+  background: #15181C;
   border: 1px solid #2B3139;
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 4px;
+  padding: 10px 14px;
   color: #fff;
   font-size: 14px;
   outline: none;
@@ -386,12 +402,13 @@ input {
 
 input:focus {
   border-color: #2962FF;
+  background: #0B0E11;
 }
 
 button {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
   background: #2962FF;
   border: none;
   color: #fff;
