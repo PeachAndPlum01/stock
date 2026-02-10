@@ -1,6 +1,7 @@
 package com.stock.investment.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.stock.investment.entity.InvestmentInfo;
@@ -83,7 +84,11 @@ public class InvestmentInfoService {
      * 按省份统计股票数量
      */
     public List<Map<String, Object>> countByProvince() {
-        return investmentInfoMapper.countByProvince();
+        QueryWrapper<InvestmentInfo> wrapper = new QueryWrapper<>();
+        wrapper.select("province", "count(*) as count")
+               .eq("status", 1)
+               .groupBy("province");
+        return investmentInfoMapper.selectMaps(wrapper);
     }
 
     /**

@@ -9,14 +9,10 @@ spring:
   
   # Redis配置
   redis:
-    host: localhost
+    host: 127.0.0.1
     port: 6379
     database: 0
-    timeout: 3000
-
-
-
-
+    timeout: 5000
   
   # Gateway路由配置
   cloud:
@@ -32,6 +28,9 @@ spring:
         group: DEFAULT_GROUP
         refresh-enabled: true
     gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 5000
       discovery:
         locator:
           enabled: true  # 启用服务发现

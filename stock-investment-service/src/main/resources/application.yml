@@ -17,6 +17,12 @@ spring:
     username: root
     password: root
   
+  # SQL初始化
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/investment_info.sql
+  
   # Jackson配置
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss

@@ -96,3 +96,87 @@ export const getMapData = () => {
     method: 'get'
   })
 }
+
+/**
+ * 获取股吧帖子列表
+ */
+export const getPostList = (page = 1, size = 10) => {
+  return request({
+    url: '/investment/bar/posts',
+    method: 'get',
+    params: { page, size }
+  })
+}
+
+/**
+ * 发布帖子
+ */
+export const createPost = (data) => {
+  return request({
+    url: '/investment/bar/post',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 获取帖子评论
+ */
+export const getComments = (postId) => {
+  return request({
+    url: `/investment/bar/post/${postId}/comments`,
+    method: 'get'
+  })
+}
+
+/**
+ * 发表评论
+ */
+export const createComment = (data) => {
+  return request({
+    url: '/investment/bar/comment',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 获取热门股票
+ */
+export const getHotStocks = () => {
+  return request({
+    url: '/investment/bar/hot-stocks',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取观星台图谱数据
+ */
+export const getStarGraph = () => {
+  return request({
+    url: '/investment/star/graph',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取观星台初始分析
+ */
+export const getStarAnalysis = () => {
+  return request({
+    url: '/investment/star/analyze',
+    method: 'get'
+  })
+}
+
+/**
+ * 观星台提问
+ */
+export const chatWithStar = (question) => {
+  return request({
+    url: '/investment/star/chat',
+    method: 'post',
+    data: { question }
+  })
+}

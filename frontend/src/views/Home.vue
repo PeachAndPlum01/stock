@@ -11,6 +11,7 @@
         <nav class="main-nav">
           <a href="#" class="nav-link" :class="{ active: currentView === 'region-analysis' }" @click.prevent="handleMenuSelect('region-analysis')">地区透视</a>
           <a href="#" class="nav-link" :class="{ active: currentView === 'star-view' }" @click.prevent="handleMenuSelect('star-view')">观星台</a>
+          <a href="#" class="nav-link" :class="{ active: currentView === 'discussion' }" @click.prevent="handleMenuSelect('discussion')">股吧</a>
           <a href="#" class="nav-link disabled">市场 <span class="badge-new">New</span></a>
           <a href="#" class="nav-link disabled">金融</a>
           <a href="#" class="nav-link disabled">Web3</a>
@@ -105,35 +106,71 @@
     <!-- 3. 主体交易界面 (Trading Interface) -->
     <main class="trading-main">
       
+      <!-- 股吧视图 -->
+      <StockBar v-if="currentView === 'discussion'" />
+
+      <!-- 观星台视图 -->
+      <StarObservatory v-else-if="currentView === 'star-view'" />
+
+      <!-- 原有视图容器 -->
+      <template v-else>
       <!-- 左侧：市场列表 (Market List) -->
       <aside class="panel-left">
-        <div class="panel-header">
-          <span class="tab active">热门区域</span>
-          <span class="tab">自选</span>
-        </div>
-        <div class="market-list-header">
-          <span>区域</span>
-          <span class="text-right" style="display: flex; align-items: center; gap: 4px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#FFC107">
-              <path d="M12 23c4.97 0 9-4.03 9-9 0-4.97-9-13-9-13S3 9.03 3 14c0 4.97 4.03 9 9 9z"/>
-            </svg>
-            热度
-          </span>
-        </div>
-        <div class="market-list-body scrollbar-hide">
-          <div 
-            v-for="(item, index) in (mapData.length ? mapData : mockProvinces)" 
-            :key="index"
-            class="market-item"
-            :class="{ active: selectedProvince === item.name }"
-            @click="handleProvinceClick(item.name)"
-          >
-            <div class="item-name">
-              <span class="star-icon"><el-icon><Star /></el-icon></span>
-              {{ item.name }}
+        <!-- 新增：市场情绪分布 -->
+        <div class="market-sentiment">
+          <div class="sentiment-header">
+            <div class="index-info">
+              <span class="index-name">上证指数</span>
+              <span class="index-value text-down">2,850.30</span>
             </div>
-            <div class="item-price" :class="item.value > 5 ? 'text-up' : ''">
-              {{ item.value ? item.value.toFixed(2) : '-' }}
+            <span class="index-change text-down">-0.85%</span>
+          </div>
+          <div class="sentiment-chart">
+            <div class="bar-labels">
+              <span class="label-up">涨 1,205</span>
+              <span class="label-flat">平 158</span>
+              <span class="label-down">跌 3,850</span>
+            </div>
+            <div class="distribution-bar">
+              <div class="bar-segment up" style="width: 23%"></div>
+              <div class="bar-segment flat" style="width: 3%"></div>
+              <div class="bar-segment down" style="width: 74%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <div class="market-card-container">
+          <div class="panel-header">
+            <span class="tab active">热门区域</span>
+            <span class="tab">自选</span>
+          </div>
+
+          <div class="market-list-header">
+            <span>区域</span>
+            <span class="text-right" style="display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M13.5 3C13.5 3 13.5 3 13.5 3C10.5 5 8.5 8 8.5 11.5C8.5 12 8.5 12.5 8.5 13C6.5 14 5.5 16 5.5 18C5.5 21 8 23.5 11 23.5C14 23.5 16.5 21 16.5 18C16.5 16 15.5 14 13.5 13C13.5 12.5 13.5 12 13.5 11.5C13.5 8 11.5 5 8.5 3" fill="#FFC107"/>
+              </svg>
+              热度
+            </span>
+          </div>
+          <div class="market-list-body scrollbar-hide">
+            <div 
+              v-for="(item, index) in (mapData.length ? mapData : mockProvinces)" 
+              :key="index"
+              class="market-item"
+              :class="{ active: selectedProvince === item.name }"
+              @click="handleProvinceClick(item.name)"
+            >
+              <div class="item-name">
+                <span class="star-icon"><el-icon><Star /></el-icon></span>
+                {{ item.name }}
+              </div>
+              <div class="item-price" :class="item.value > 5 ? 'text-up' : ''">
+                {{ item.value ? item.value.toFixed(2) : '-' }}
+              </div>
             </div>
           </div>
         </div>
@@ -175,26 +212,6 @@
         <div class="chart-container">
           <div v-if="currentView === 'region-analysis'" class="full-map-wrapper">
             <div ref="mapRef" class="china-map"></div>
-          </div>
-          
-          <!-- 观星台视图 -->
-          <div v-else-if="currentView === 'star-view'" class="star-view-wrapper">
-             <div class="star-grid-dark">
-                <div
-                  v-for="feature in starFeatures"
-                  :key="feature.id"
-                  class="star-card-dark"
-                  @click="handleFeatureClick(feature)"
-                >
-                  <div class="card-icon">
-                    <el-icon :size="32" color="#2962FF"><component :is="feature.icon" /></el-icon>
-                  </div>
-                  <div class="card-content">
-                    <h4>{{ feature.title }}</h4>
-                    <p>{{ feature.description }}</p>
-                  </div>
-                </div>
-             </div>
           </div>
         </div>
       </section>
@@ -266,6 +283,7 @@
           </div>
         </div>
       </aside>
+      </template>
     </main>
 
     <!-- 底部状态栏 -->
@@ -288,11 +306,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Bell, Download, Star, Setting, Files, TrendCharts, DataAnalysis, Histogram } from '@element-plus/icons-vue'
+import { Search, Bell, Download, Star, Setting, Files } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getMapData, getInvestmentByProvince, logout } from '@/api'
 import { useUserStore } from '@/store/user'
 import chinaJson from '@/assets/china.json'
+import StockBar from '@/components/StockBar.vue'
+import StarObservatory from '@/components/StarObservatory.vue'
 
 // 验证地图数据是否正确加载
 if (!chinaJson || !chinaJson.features) {
@@ -307,14 +327,9 @@ let chartInstance = null
 
 const selectedProvince = ref('')
 const investmentList = ref([])
-const relatedProvinces = ref([])
-const relatedReasons = ref({})
-const expandedReasons = ref({}) 
 const mapData = ref([])
 const activeMenu = ref('region-analysis')
 const currentView = ref('region-analysis')
-const activeStarFeature = ref('')
-const currentFeatureInfo = ref({})
 
 // 颜色辅助函数
 const getChangeClass = (val) => {
@@ -336,48 +351,10 @@ const mockProvinces = ref([
   { name: '湖北', value: 2.8 }
 ])
 
-const currentViewName = computed(() => {
-  const map = {
-    'region-analysis': '地区透视',
-    'star-view': '观星台'
-  }
-  return map[currentView.value] || 'Dashboard'
-})
 
-// 观星功能入口列表
-const starFeatures = ref([
-  {
-    id: 'market-trend',
-    title: '市场行情',
-    icon: 'TrendCharts',
-    description: '实时查看A股市场行情，掌握最新动态',
-  },
-  {
-    id: 'stock-analysis',
-    title: '股票分析',
-    icon: 'DataAnalysis',
-    description: '深度分析股票数据，发现投资机会',
-  },
-  {
-    id: 'my-watchlist',
-    title: '我的自选',
-    icon: 'Star',
-    description: '管理自选股票，个性化投资组合',
-  },
-  {
-    id: 'hot-stocks',
-    title: '热门股票',
-    icon: 'Histogram',
-    description: '查看市场热门股票，追踪投资热点',
-  }
-])
-
-const toggleReasonExpand = (province) => {
-  expandedReasons.value[province] = !expandedReasons.value[province]
-}
 
 const handleMenuSelect = async (index) => {
-  if (['concept-analysis', 'discussion'].includes(index)) {
+  if (['concept-analysis'].includes(index)) {
     ElMessage.warning('该功能正在开发中')
     return
   }
@@ -398,20 +375,9 @@ const handleMenuSelect = async (index) => {
 const resetMapState = () => {
   selectedProvince.value = ''
   investmentList.value = []
-  relatedProvinces.value = []
-  relatedReasons.value = {}
 }
 
-const handleFeatureClick = (feature) => {
-  activeStarFeature.value = feature.id
-  currentFeatureInfo.value = feature
-  ElMessage.success(`已进入${feature.title}模块`)
-}
 
-const handleBackToGrid = () => {
-  activeStarFeature.value = ''
-  currentFeatureInfo.value = {}
-}
 
 const initMap = () => {
   if (!mapRef.value) return false
@@ -595,13 +561,20 @@ const handleLogout = async () => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
-      background: '#1E1E1E', // Dark theme dialog
       customClass: 'dark-dialog'
     })
-    await logout()
+    
+    try {
+      await logout()
+    } catch (error) {
+      console.warn('Logout API failed, forcing local logout:', error)
+    }
+    
     userStore.clearUser()
     router.push('/login')
-  } catch (e) {}
+  } catch (e) {
+    // User cancelled or other error
+  }
 }
 
 const handleResize = () => {
@@ -907,17 +880,116 @@ onUnmounted(() => {
   width: 300px;
   display: flex;
   flex-direction: column;
-  background: var(--okx-panel-bg);
+  background: var(--okx-bg);
+  padding: 12px;
+}
+
+.panel-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  margin: 12px 8px;
+  flex-shrink: 0;
 }
 
 .panel-header {
   height: 48px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--okx-border);
+  background: transparent;
   gap: 24px;
 }
+
+.market-sentiment {
+  padding: 16px;
+  background: var(--okx-panel-bg);
+  border-radius: 8px;
+  border: 1px solid var(--okx-border);
+  /* A股特有颜色定义：红涨绿跌 */
+  --sentiment-up: #F6465D;
+  --sentiment-down: #0ECB81;
+}
+
+.market-card-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--okx-panel-bg);
+  border-radius: 8px;
+  border: 1px solid var(--okx-border);
+  overflow: hidden;
+}
+
+.market-sentiment .text-up { color: var(--sentiment-up) !important; }
+.market-sentiment .text-down { color: var(--sentiment-down) !important; }
+
+.sentiment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.index-info {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.index-name {
+  color: var(--okx-text-secondary);
+  font-weight: 500;
+}
+
+.index-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+
+.index-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+.sentiment-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.label-up { color: var(--sentiment-up); }
+.label-flat { color: var(--okx-text-secondary); }
+.label-down { color: var(--sentiment-down); }
+
+.distribution-bar {
+  height: 10px; /* 稍微加高 */
+  background: #2C323D;
+  border-radius: 2px; /* 减小圆角，更像柱子 */
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  gap: 2px; /* 增加间隔，形成独立的柱子感 */
+  padding: 2px; /* 内边距 */
+}
+
+.bar-segment {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 1px;
+}
+
+.bar-segment.up { background: var(--sentiment-up); }
+.bar-segment.flat { background: var(--okx-text-secondary); opacity: 0.5; }
+.bar-segment.down { background: var(--sentiment-down); }
 
 .tab {
   font-size: 14px;
@@ -943,10 +1015,10 @@ onUnmounted(() => {
 .market-list-header {
   display: flex;
   justify-content: space-between;
-  padding: 10px 16px; /* 修正 padding 与 item 一致 */
+  padding: 10px 16px;
   font-size: 12px;
   color: var(--okx-text-secondary);
-  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .market-list-body {
@@ -959,7 +1031,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 2px;
@@ -1340,75 +1412,13 @@ onUnmounted(() => {
 .star-view-wrapper {
   width: 100%;
   height: 100%;
-  padding: 40px;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
   z-index: 2;
   position: relative;
 }
 
-.star-grid-dark {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 24px;
-}
 
-.star-card-dark {
-  background: rgba(30, 35, 41, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--okx-border);
-  border-radius: 12px;
-  padding: 24px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-  overflow: hidden;
-}
-
-.star-card-dark::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--okx-accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.star-card-dark:hover {
-  background: rgba(42, 46, 57, 0.8);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
-
-.star-card-dark:hover::before {
-  opacity: 1;
-}
-
-.card-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
-  filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
-}
-
-.card-content h4 {
-  margin: 0 0 6px 0;
-  color: var(--okx-text-primary);
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.card-content p {
-  margin: 0;
-  color: var(--okx-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
 
 .empty-state {
   padding: 40px 20px;
